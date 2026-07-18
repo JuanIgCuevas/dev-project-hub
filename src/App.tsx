@@ -1,5 +1,10 @@
-import { ArrowRight, CheckCircle2, Code2, FolderKanban, Github, LayoutDashboard, ListTodo, LogOut, Plus, Rocket, Search, Sparkles } from 'lucide-react'
-import { Link, Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom'
+import { ArrowRight, CheckCircle2, Code2, FolderKanban, Github, KeyRound, LayoutDashboard, ListTodo, LogOut, Plus, Rocket, Save, Search, Settings as SettingsIcon, Sparkles, UserRound } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { AuthPage } from './features/auth/AuthPage'
+import { useAuth } from './features/auth/AuthProvider'
+import { ForgotPasswordPage, ResetPasswordPage } from './features/auth/PasswordPages'
+import { supabase } from './lib/supabase'
 
 const projects = [
   { id: 'devtrack', name: 'DevTrack', description: 'El centro de control para todos mis proyectos.', status: 'En progreso', tone: 'green', tech: ['React', 'TypeScript', 'Supabase'], done: 8, total: 12, updated: 'Hoy' },
@@ -19,15 +24,23 @@ function Brand() {
 }
 
 function Sidebar() {
+  const { user, signOut } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const username = user?.user_metadata.username || user?.email?.split('@')[0] || 'Developer'
+  const initials = username.slice(0, 2).toUpperCase()
+  const handleSignOut = async () => { await signOut(); navigate('/login', { replace: true }) }
+
   return <aside className="sidebar">
     <Brand />
     <nav>
-      <Link className="nav-link active" to="/dashboard"><LayoutDashboard size={18} /> Proyectos</Link>
+      <Link className={`nav-link ${location.pathname !== '/settings' ? 'active' : ''}`} to="/dashboard"><LayoutDashboard size={18} /> Proyectos</Link>
       <a className="nav-link" href="#tasks"><ListTodo size={18} /> Mis tareas</a>
+      <Link className={`nav-link ${location.pathname === '/settings' ? 'active' : ''}`} to="/settings"><SettingsIcon size={18} /> Configuración</Link>
     </nav>
     <div className="sidebar-bottom">
-      <div className="user"><div className="avatar">JD</div><div><strong>Juan Developer</strong><span>juan@dev.com</span></div></div>
-      <Link className="logout" to="/login"><LogOut size={17} /> Cerrar sesión</Link>
+      <div className="user"><div className="avatar">{initials}</div><div><strong>{username}</strong><span>{user?.email}</span></div></div>
+      <button className="logout" type="button" onClick={handleSignOut}><LogOut size={17} /> Cerrar sesión</button>
     </div>
   </aside>
 }
@@ -37,8 +50,11 @@ function Shell({ children }: { children: React.ReactNode }) {
 }
 
 function Dashboard() {
+  const { user } = useAuth()
+  const username = user?.user_metadata.username || user?.email?.split('@')[0] || 'Developer'
+  const today = new Intl.DateTimeFormat('es-AR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date()).toUpperCase()
   return <Shell>
-    <header className="topbar"><div><p className="eyebrow">VIERNES, 17 DE JULIO</p><h1>Buenos días, Juan <span>👋</span></h1><p>Todo lo que estás construyendo, en un solo lugar.</p></div><Link className="button primary" to="/projects/new"><Plus size={18} /> Nuevo proyecto</Link></header>
+    <header className="topbar"><div><p className="eyebrow">{today}</p><h1>Buenos días, {username} <span>👋</span></h1><p>Todo lo que estás construyendo, en un solo lugar.</p></div><Link className="button primary" to="/projects/new"><Plus size={18} /> Nuevo proyecto</Link></header>
     <section className="stats">
       <article><span className="stat-icon blue"><FolderKanban /></span><div><strong>4</strong><p>Proyectos totales</p></div></article>
       <article><span className="stat-icon green"><Rocket /></span><div><strong>2</strong><p>En progreso</p></div></article>
@@ -89,12 +105,68 @@ function NewProject() {
     </form></div></Shell>
 }
 
-function Login() {
-  return <div className="auth-page"><div className="auth-copy"><Brand /><div><span className="auth-label"><Sparkles size={15} /> CONSTRUYE CON INTENCIÓN</span><h1>Tus ideas merecen<br /><em>llegar a producción.</em></h1><p>Organiza tus proyectos, mantén el foco y convierte tu próximo side project en algo real.</p></div><blockquote>“La herramienta que necesitaba para dejar de abandonar proyectos a mitad de camino.”<footer>— Un developer con demasiadas ideas</footer></blockquote></div>
-    <div className="auth-panel"><form className="auth-form"><h2>Bienvenido de nuevo</h2><p>Continúa construyendo donde lo dejaste.</p><label>Email<input type="email" defaultValue="demo@devhub.app" /></label><label>Contraseña<input type="password" defaultValue="demopassword" /></label><Link className="button primary wide" to="/dashboard">Iniciar sesión <ArrowRight size={18} /></Link><div className="divider"><span>o</span></div><button className="button wide" type="button"><Github size={19} /> Continuar con GitHub</button><p className="auth-switch">¿No tienes cuenta? <Link to="/register">Crea una gratis</Link></p></form></div>
-  </div>
+function SettingsPage() {
+  const { user, updateEmail, updatePassword } = useAuth()
+  const location = useLocation()
+  const [username, setUsername] = useState(user?.user_metadata.username || '')
+  const [email, setEmail] = useState(user?.email || '')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmation, setConfirmation] = useState('')
+  const [profileMessage, setProfileMessage] = useState('')
+  const [passwordMessage, setPasswordMessage] = useState((location.state as { passwordUpdated?: boolean } | null)?.passwordUpdated ? 'Tu contraseña se actualizó correctamente.' : '')
+  const [error, setError] = useState('')
+  const [savingProfile, setSavingProfile] = useState(false)
+  const [savingPassword, setSavingPassword] = useState(false)
+
+  useEffect(() => {
+    if (!user) return
+    supabase.from('profiles').select('username, email').eq('id', user.id).single().then(({ data }) => {
+      if (data?.username) setUsername(data.username)
+      if (data?.email) setEmail(data.email)
+    })
+  }, [user])
+
+  const saveProfile = async (event: React.FormEvent) => {
+    event.preventDefault(); setError(''); setProfileMessage(''); setSavingProfile(true)
+    try {
+      if (!user || username.trim().length < 2) throw new Error('El nombre debe tener al menos 2 caracteres.')
+      const { error: profileError } = await supabase.from('profiles').update({ username: username.trim(), updated_at: new Date().toISOString() }).eq('id', user.id)
+      if (profileError) throw profileError
+      const { error: metadataError } = await supabase.auth.updateUser({ data: { username: username.trim() } })
+      if (metadataError) throw metadataError
+      if (email.trim().toLowerCase() !== user.email?.toLowerCase()) {
+        await updateEmail(email)
+        setProfileMessage('Datos guardados. Confirmá el nuevo email desde el mensaje que te enviamos.')
+      } else setProfileMessage('Tus datos se guardaron correctamente.')
+    } catch (caught) { setError(caught instanceof Error ? caught.message : 'No pudimos guardar los cambios.') }
+    finally { setSavingProfile(false) }
+  }
+
+  const savePassword = async (event: React.FormEvent) => {
+    event.preventDefault(); setError(''); setPasswordMessage('')
+    if (newPassword.length < 8) { setError('La contraseña debe tener al menos 8 caracteres.'); return }
+    if (newPassword !== confirmation) { setError('Las contraseñas no coinciden.'); return }
+    setSavingPassword(true)
+    try { await updatePassword(newPassword); setNewPassword(''); setConfirmation(''); setPasswordMessage('Tu contraseña se actualizó correctamente.') }
+    catch { setError('No pudimos actualizar la contraseña. Volvé a iniciar sesión o usá la recuperación por email.') }
+    finally { setSavingPassword(false) }
+  }
+
+  return <Shell><div className="settings-page"><div className="settings-heading"><p className="eyebrow">TU CUENTA</p><h1>Configuración</h1><p>Administrá tus datos y la seguridad de tu cuenta.</p></div>
+    {error && <div className="form-message error" role="alert">{error}</div>}
+    <div className="settings-grid"><form className="settings-card" onSubmit={saveProfile}><div className="settings-card-title"><span><UserRound /></span><div><h2>Perfil</h2><p>La información que identifica tu cuenta.</p></div></div><label>Nombre<input value={username} onChange={event => setUsername(event.target.value)} /></label><label>Email<input type="email" value={email} onChange={event => setEmail(event.target.value)} /></label>{profileMessage && <div className="form-message success">{profileMessage}</div>}<button className="button primary" disabled={savingProfile}><Save size={17} /> {savingProfile ? 'Guardando...' : 'Guardar cambios'}</button></form>
+      <form className="settings-card" onSubmit={savePassword}><div className="settings-card-title"><span><KeyRound /></span><div><h2>Contraseña</h2><p>Usá una contraseña única de al menos 8 caracteres.</p></div></div><label>Nueva contraseña<input type="password" autoComplete="new-password" value={newPassword} onChange={event => setNewPassword(event.target.value)} /></label><label>Confirmar contraseña<input type="password" autoComplete="new-password" value={confirmation} onChange={event => setConfirmation(event.target.value)} /></label>{passwordMessage && <div className="form-message success">{passwordMessage}</div>}<button className="button primary" disabled={savingPassword}><KeyRound size={17} /> {savingPassword ? 'Actualizando...' : 'Actualizar contraseña'}</button></form>
+    </div></div></Shell>
+}
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth()
+  const location = useLocation()
+  if (loading) return <div className="route-loader"><span /><p>Preparando tu espacio...</p></div>
+  if (!user) return <Navigate to="/login" state={{ from: location }} replace />
+  return children
 }
 
 export function App() {
-  return <Routes><Route path="/login" element={<Login />} /><Route path="/register" element={<Login />} /><Route path="/dashboard" element={<Dashboard />} /><Route path="/projects/new" element={<NewProject />} /><Route path="/projects/:projectId" element={<ProjectPage />} /><Route path="*" element={<Navigate to="/login" replace />} /></Routes>
+  return <Routes><Route path="/login" element={<AuthPage mode="login" />} /><Route path="/register" element={<AuthPage mode="register" />} /><Route path="/forgot-password" element={<ForgotPasswordPage />} /><Route path="/reset-password" element={<ResetPasswordPage />} /><Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} /><Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} /><Route path="/projects/new" element={<ProtectedRoute><NewProject /></ProtectedRoute>} /><Route path="/projects/:projectId" element={<ProtectedRoute><ProjectPage /></ProtectedRoute>} /><Route path="*" element={<Navigate to="/dashboard" replace />} /></Routes>
 }
