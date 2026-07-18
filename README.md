@@ -17,3 +17,13 @@ Plataforma para que desarrolladores independientes organicen, gestionen y hagan 
 3. Ejecuta el contenido de `supabase/migrations/001_initial_schema.sql` en Supabase.
 4. Instala las dependencias con `npm install`.
 5. Inicia la aplicacion con `npm run dev`.
+
+## Acceso a datos
+
+El frontend no accede directamente a las tablas de PostgreSQL. Todas las
+lecturas y escrituras de datos de negocio deben implementarse como funciones
+SQL seguras y consumirse mediante `supabase.rpc(...)`.
+
+Las operaciones de identidad, sesiones, email y contrasena utilizan la API
+oficial de Supabase Auth. ESLint bloquea nuevas llamadas `supabase.from(...)`
+dentro del codigo fuente.

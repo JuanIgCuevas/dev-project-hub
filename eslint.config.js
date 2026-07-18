@@ -20,6 +20,13 @@ export default tseslint.config(
     rules: {
       ...reactHooks.configs.recommended.rules,
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "CallExpression[callee.type='MemberExpression'][callee.object.name='supabase'][callee.property.name='from']",
+          message: 'El acceso a datos debe realizarse mediante supabase.rpc(...), nunca directamente sobre tablas.',
+        },
+      ],
     },
   },
 )
