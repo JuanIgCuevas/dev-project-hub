@@ -1,4 +1,4 @@
-import { ArrowRight, CalendarDays, CheckCircle2, Code2, ExternalLink, FolderKanban, Github, KeyRound, LayoutDashboard, ListTodo, LogOut, Pencil, Plus, Rocket, Save, Search, Settings as SettingsIcon, Sparkles, Trash2, UserRound } from 'lucide-react'
+import { ArrowRight, CalendarDays, CheckCircle2, Code2, Columns3, ExternalLink, FolderKanban, Github, GripVertical, KeyRound, LayoutDashboard, ListTodo, LogOut, Pencil, Plus, Rocket, Rows3, Save, Search, Settings as SettingsIcon, Sparkles, Trash2, UserRound } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { AuthPage } from './features/auth/AuthPage'
@@ -7,7 +7,8 @@ import { ForgotPasswordPage, ResetPasswordPage } from './features/auth/PasswordP
 import { ProjectForm } from './features/projects/ProjectForm'
 import { useDeleteProject, useProject, useProjects } from './features/projects/projectApi'
 import { TaskForm } from './features/tasks/TaskForm'
-import { useDeleteTask, useUpdateTaskStatus } from './features/tasks/taskApi'
+import { useDeleteTask, useMyTasks, useUpdateTaskStatus } from './features/tasks/taskApi'
+import type { TaskOverview } from './features/tasks/taskApi'
 import { supabase } from './lib/supabase'
 import type { ProjectStatus, Task, TaskStatus } from './types/database'
 
@@ -17,6 +18,12 @@ const projectStatus: Record<ProjectStatus, { label: string; tone: string }> = {
   paused: { label: 'Pausado', tone: 'amber' },
   completed: { label: 'Terminado', tone: 'green' },
 }
+
+const taskColumns: { status: TaskStatus; label: string }[] = [
+  { status: 'todo', label: 'Pendiente' },
+  { status: 'in_progress', label: 'En progreso' },
+  { status: 'done', label: 'Completada' },
+]
 
 function relativeDate(value: string) {
   const days = Math.floor((Date.now() - new Date(value).getTime()) / 86_400_000)
@@ -33,6 +40,7 @@ function Sidebar() {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const projectsActive = location.pathname === '/dashboard' || location.pathname.startsWith('/projects')
   const username = user?.user_metadata.username || user?.email?.split('@')[0] || 'Developer'
   const initials = username.slice(0, 2).toUpperCase()
   const handleSignOut = async () => { await signOut(); navigate('/login', { replace: true }) }
@@ -40,12 +48,12 @@ function Sidebar() {
   return <aside className="sidebar">
     <Brand />
     <nav>
-      <Link className={`nav-link ${location.pathname !== '/settings' ? 'active' : ''}`} to="/dashboard"><LayoutDashboard size={18} /> Proyectos</Link>
-      <a className="nav-link" href="#tasks"><ListTodo size={18} /> Mis tareas</a>
-      <Link className={`nav-link ${location.pathname === '/settings' ? 'active' : ''}`} to="/settings"><SettingsIcon size={18} /> Configuración</Link>
+      <Link className={`nav-link ${projectsActive ? 'active' : ''}`} to="/dashboard"><LayoutDashboard size={18} /> Proyectos</Link>
+      <Link className={`nav-link ${location.pathname === '/tasks' ? 'active' : ''}`} to="/tasks"><ListTodo size={18} /> Mis tareas</Link>
+      <Link className={`nav-link mobile-settings-link ${location.pathname === '/settings' ? 'active' : ''}`} to="/settings" aria-label="Configuración"><SettingsIcon size={18} /> Configuración</Link>
     </nav>
     <div className="sidebar-bottom">
-      <div className="user"><div className="avatar">{initials}</div><div><strong>{username}</strong><span>{user?.email}</span></div></div>
+      <div className="account-row"><div className="user"><div className="avatar">{initials}</div><div><strong>{username}</strong><span>{user?.email}</span></div></div><Link className={`account-settings ${location.pathname === '/settings' ? 'active' : ''}`} to="/settings" aria-label="Configuración" title="Configuración"><SettingsIcon size={18} /></Link></div>
       <button className="logout" type="button" onClick={handleSignOut}><LogOut size={17} /> Cerrar sesión</button>
     </div>
   </aside>
@@ -159,6 +167,52 @@ function ProjectEditorPage({ mode }: { mode: 'create' | 'edit' }) {
   return <Shell><div className="form-page"><Link className="back" to={project ? `/projects/${project.id}` : '/dashboard'}>← Cancelar y volver</Link><div className="form-heading"><span className="stat-icon blue"><Sparkles /></span><div><h1>{project ? 'Editar proyecto' : 'Nuevo proyecto'}</h1><p>{project ? 'Actualizá la información principal.' : 'Dale un hogar a tu próxima gran idea.'}</p></div></div><ProjectForm project={project} /></div></Shell>
 }
 
+function MyTasksPage() {
+  const { data: tasks = [], isLoading, error } = useMyTasks()
+  const updateTaskStatus = useUpdateTaskStatus()
+  const deleteTask = useDeleteTask()
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | TaskStatus>('all')
+  const [priorityFilter, setPriorityFilter] = useState<'all' | 'low' | 'medium' | 'high'>('all')
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list')
+  const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null)
+  const [dropTarget, setDropTarget] = useState<TaskStatus | null>(null)
+  const [editingTask, setEditingTask] = useState<TaskOverview | undefined>()
+  const [taskError, setTaskError] = useState('')
+  const visibleTasks = tasks.filter(task => {
+    const matchesSearch = `${task.title} ${task.project_name}`.toLowerCase().includes(search.trim().toLowerCase())
+    const matchesStatus = viewMode === 'kanban' || statusFilter === 'all' || task.status === statusFilter
+    return matchesSearch && matchesStatus && (priorityFilter === 'all' || task.priority === priorityFilter)
+  })
+
+  const changeStatus = async (task: TaskOverview, status: TaskStatus) => {
+    setTaskError('')
+    try { await updateTaskStatus.mutateAsync({ id: task.id, status }) }
+    catch { setTaskError('No pudimos cambiar el estado de la tarea.') }
+  }
+  const removeTask = async (task: TaskOverview) => {
+    if (!window.confirm(`¿Eliminar la tarea “${task.title}”?`)) return
+    setTaskError('')
+    try { await deleteTask.mutateAsync(task.id) }
+    catch { setTaskError('No pudimos eliminar la tarea.') }
+  }
+  const dropTask = async (status: TaskStatus) => {
+    const task = tasks.find(item => item.id === draggingTaskId)
+    setDraggingTaskId(null); setDropTarget(null)
+    if (!task || task.status === status) return
+    await changeStatus(task, status)
+  }
+
+  return <Shell><div className="tasks-page"><header className="tasks-heading"><div><p className="eyebrow">TU TRABAJO</p><h1>Mis tareas</h1><p>Todo lo pendiente, sin importar en qué proyecto esté.</p></div><div className="tasks-header-actions"><div className="view-toggle" aria-label="Cambiar vista"><button className={viewMode === 'list' ? 'active' : ''} onClick={() => setViewMode('list')} title="Vista lista"><Rows3 size={17} /> Lista</button><button className={viewMode === 'kanban' ? 'active' : ''} onClick={() => setViewMode('kanban')} title="Vista Kanban"><Columns3 size={17} /> Kanban</button></div><Link className="button primary" to="/dashboard"><FolderKanban size={17} /> Ver proyectos</Link></div></header>
+    <section className="stats task-stats"><article><span className="stat-icon blue"><ListTodo /></span><div><strong>{tasks.filter(task => task.status === 'todo').length}</strong><p>Pendientes</p></div></article><article><span className="stat-icon green"><Rocket /></span><div><strong>{tasks.filter(task => task.status === 'in_progress').length}</strong><p>En progreso</p></div></article><article><span className="stat-icon violet"><CheckCircle2 /></span><div><strong>{tasks.filter(task => task.status === 'done').length}</strong><p>Completadas</p></div></article></section>
+    <section className={`task-filters ${viewMode === 'kanban' ? 'kanban-filters' : ''}`}><label className="search"><Search size={17} /><input aria-label="Buscar tareas" value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar tarea o proyecto..." /></label>{viewMode === 'list' && <select aria-label="Filtrar por estado" value={statusFilter} onChange={event => setStatusFilter(event.target.value as typeof statusFilter)}><option value="all">Todos los estados</option><option value="todo">Pendientes</option><option value="in_progress">En progreso</option><option value="done">Completadas</option></select>}<select aria-label="Filtrar por prioridad" value={priorityFilter} onChange={event => setPriorityFilter(event.target.value as typeof priorityFilter)}><option value="all">Todas las prioridades</option><option value="high">Alta</option><option value="medium">Media</option><option value="low">Baja</option></select></section>
+    {taskError && <div className="form-message error" role="alert">{taskError}</div>}{isLoading && <div className="content-state"><span className="mini-loader" /><p>Cargando tareas...</p></div>}{error && <div className="content-state error-state"><p>No pudimos cargar tus tareas.</p></div>}
+    {!isLoading && !error && viewMode === 'list' && <section className="all-tasks-panel">{visibleTasks.length ? visibleTasks.map(task => <article className="global-task" key={task.id}><button className={task.status === 'done' ? 'task-check checked' : 'task-check'} onClick={() => changeStatus(task, task.status === 'done' ? 'todo' : 'done')} aria-label={task.status === 'done' ? `Reabrir ${task.title}` : `Completar ${task.title}`}>{task.status === 'done' && '✓'}</button><div className="global-task-main"><strong className={task.status === 'done' ? 'completed-title' : ''}>{task.title}</strong><div><Link to={`/projects/${task.project_id}`}>{task.project_name}</Link>{task.due_date && <span className={new Date(`${task.due_date}T23:59:59`) < new Date() && task.status !== 'done' ? 'overdue' : ''}><CalendarDays size={12} /> {new Intl.DateTimeFormat('es-AR').format(new Date(`${task.due_date}T12:00:00`))}</span>}</div></div><select className={`task-status status-${task.status}`} value={task.status} onChange={event => changeStatus(task, event.target.value as TaskStatus)}><option value="todo">Pendiente</option><option value="in_progress">En progreso</option><option value="done">Completada</option></select><span className={`priority ${task.priority === 'high' ? 'alta' : task.priority === 'low' ? 'baja' : 'media'}`}>{task.priority === 'high' ? 'Alta' : task.priority === 'low' ? 'Baja' : 'Media'}</span><div className="task-actions"><button className="icon-button" onClick={() => setEditingTask(task)} aria-label={`Editar ${task.title}`}><Pencil /></button><button className="icon-button danger-icon" onClick={() => removeTask(task)} aria-label={`Eliminar ${task.title}`}><Trash2 /></button></div></article>) : <div className="empty-tasks"><ListTodo /><p>No hay tareas que coincidan con los filtros.</p>{tasks.length === 0 && <Link className="button small" to="/dashboard">Crear una desde un proyecto</Link>}</div>}</section>}
+    {!isLoading && !error && viewMode === 'kanban' && <section className="kanban-board">{taskColumns.map(column => { const columnTasks = visibleTasks.filter(task => task.status === column.status); return <div className={`kanban-column ${dropTarget === column.status ? 'drop-target' : ''}`} key={column.status} onDragOver={event => { event.preventDefault(); setDropTarget(column.status) }} onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDropTarget(null) }} onDrop={event => { event.preventDefault(); dropTask(column.status) }}><header><div><i className={`column-dot ${column.status}`} /><h2>{column.label}</h2></div><span>{columnTasks.length}</span></header><div className="kanban-stack">{columnTasks.map(task => <article className={`kanban-card ${draggingTaskId === task.id ? 'dragging' : ''}`} draggable onDragStart={event => { event.dataTransfer.effectAllowed = 'move'; setDraggingTaskId(task.id) }} onDragEnd={() => { setDraggingTaskId(null); setDropTarget(null) }} key={task.id}><div className="kanban-card-top"><GripVertical size={16} /><span className={`priority ${task.priority === 'high' ? 'alta' : task.priority === 'low' ? 'baja' : 'media'}`}>{task.priority === 'high' ? 'Alta' : task.priority === 'low' ? 'Baja' : 'Media'}</span></div><strong className={task.status === 'done' ? 'completed-title' : ''}>{task.title}</strong><Link to={`/projects/${task.project_id}`}>{task.project_name}</Link>{task.due_date && <span className={`kanban-date ${new Date(`${task.due_date}T23:59:59`) < new Date() && task.status !== 'done' ? 'overdue' : ''}`}><CalendarDays size={12} /> {new Intl.DateTimeFormat('es-AR').format(new Date(`${task.due_date}T12:00:00`))}</span>}<div className="kanban-card-footer"><select value={task.status} onChange={event => changeStatus(task, event.target.value as TaskStatus)} aria-label={`Mover ${task.title}`}><option value="todo">Pendiente</option><option value="in_progress">En progreso</option><option value="done">Completada</option></select><div className="task-actions"><button className="icon-button" onClick={() => setEditingTask(task)} aria-label={`Editar ${task.title}`}><Pencil /></button><button className="icon-button danger-icon" onClick={() => removeTask(task)} aria-label={`Eliminar ${task.title}`}><Trash2 /></button></div></div></article>)}{columnTasks.length === 0 && <div className="kanban-empty">Soltá una tarea acá</div>}</div></div>})}</section>}
+    {editingTask && <TaskForm projectId={editingTask.project_id} task={editingTask} onClose={() => setEditingTask(undefined)} />}
+  </div></Shell>
+}
+
 function SettingsPage() {
   const { user, updateEmail, updatePassword } = useAuth()
   const location = useLocation()
@@ -222,5 +276,5 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 export function App() {
-  return <Routes><Route path="/login" element={<AuthPage mode="login" />} /><Route path="/register" element={<AuthPage mode="register" />} /><Route path="/forgot-password" element={<ForgotPasswordPage />} /><Route path="/reset-password" element={<ResetPasswordPage />} /><Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} /><Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} /><Route path="/projects/new" element={<ProtectedRoute><ProjectEditorPage mode="create" /></ProtectedRoute>} /><Route path="/projects/:projectId/edit" element={<ProtectedRoute><ProjectEditorPage mode="edit" /></ProtectedRoute>} /><Route path="/projects/:projectId" element={<ProtectedRoute><ProjectPage /></ProtectedRoute>} /><Route path="*" element={<Navigate to="/dashboard" replace />} /></Routes>
+  return <Routes><Route path="/login" element={<AuthPage mode="login" />} /><Route path="/register" element={<AuthPage mode="register" />} /><Route path="/forgot-password" element={<ForgotPasswordPage />} /><Route path="/reset-password" element={<ResetPasswordPage />} /><Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} /><Route path="/tasks" element={<ProtectedRoute><MyTasksPage /></ProtectedRoute>} /><Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} /><Route path="/projects/new" element={<ProtectedRoute><ProjectEditorPage mode="create" /></ProtectedRoute>} /><Route path="/projects/:projectId/edit" element={<ProtectedRoute><ProjectEditorPage mode="edit" /></ProtectedRoute>} /><Route path="/projects/:projectId" element={<ProtectedRoute><ProjectPage /></ProtectedRoute>} /><Route path="*" element={<Navigate to="/dashboard" replace />} /></Routes>
 }
