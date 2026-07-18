@@ -1,4 +1,4 @@
-import { ArrowRight, CalendarDays, CheckCircle2, Code2, Columns3, ExternalLink, FolderKanban, Github, GripVertical, KeyRound, LayoutDashboard, ListTodo, LogOut, Pencil, Plus, Rocket, Rows3, Save, Search, Settings as SettingsIcon, Sparkles, Trash2, UserRound } from 'lucide-react'
+import { ArrowRight, CalendarDays, CheckCircle2, Code2, Columns3, ExternalLink, FolderKanban, Github, GripVertical, KeyRound, LayoutDashboard, ListTodo, LogOut, Moon, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Rocket, Rows3, Save, Search, Settings as SettingsIcon, Sparkles, Sun, Trash2, UserRound } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { AuthPage } from './features/auth/AuthPage'
@@ -10,6 +10,7 @@ import { TaskForm } from './features/tasks/TaskForm'
 import { useDeleteTask, useMyTasks, useUpdateTaskStatus } from './features/tasks/taskApi'
 import type { TaskOverview } from './features/tasks/taskApi'
 import { supabase } from './lib/supabase'
+import { useTheme } from './features/theme/themeContext'
 import type { ProjectStatus, Task, TaskStatus } from './types/database'
 
 const projectStatus: Record<ProjectStatus, { label: string; tone: string }> = {
@@ -36,31 +37,39 @@ function Brand() {
   return <Link className="brand" to="/dashboard"><span className="brand-mark"><Code2 size={19} /></span><span>Dev<span>Hub</span></span></Link>
 }
 
-function Sidebar() {
+function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const projectsActive = location.pathname === '/dashboard' || location.pathname.startsWith('/projects')
   const username = user?.user_metadata.username || user?.email?.split('@')[0] || 'Developer'
   const initials = username.slice(0, 2).toUpperCase()
+  const { theme, toggleTheme } = useTheme()
   const handleSignOut = async () => { await signOut(); navigate('/login', { replace: true }) }
 
   return <aside className="sidebar">
-    <Brand />
+    <div className="sidebar-header"><Brand /><button className="sidebar-toggle" type="button" onClick={onToggle} aria-label={collapsed ? 'Abrir barra lateral' : 'Cerrar barra lateral'} title={collapsed ? 'Abrir barra lateral' : 'Cerrar barra lateral'}>{collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}</button></div>
     <nav>
-      <Link className={`nav-link ${projectsActive ? 'active' : ''}`} to="/dashboard"><LayoutDashboard size={18} /> Proyectos</Link>
-      <Link className={`nav-link ${location.pathname === '/tasks' ? 'active' : ''}`} to="/tasks"><ListTodo size={18} /> Mis tareas</Link>
+      <Link className={`nav-link ${projectsActive ? 'active' : ''}`} to="/dashboard" title="Proyectos"><LayoutDashboard size={18} /> Proyectos</Link>
+      <Link className={`nav-link ${location.pathname === '/tasks' ? 'active' : ''}`} to="/tasks" title="Mis tareas"><ListTodo size={18} /> Mis tareas</Link>
       <Link className={`nav-link mobile-settings-link ${location.pathname === '/settings' ? 'active' : ''}`} to="/settings" aria-label="Configuración"><SettingsIcon size={18} /> Configuración</Link>
+      <button className="nav-link mobile-theme-toggle" type="button" onClick={toggleTheme}>{theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />} {theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}</button>
     </nav>
     <div className="sidebar-bottom">
-      <div className="account-row"><div className="user"><div className="avatar">{initials}</div><div><strong>{username}</strong><span>{user?.email}</span></div></div><Link className={`account-settings ${location.pathname === '/settings' ? 'active' : ''}`} to="/settings" aria-label="Configuración" title="Configuración"><SettingsIcon size={18} /></Link></div>
+      <div className="account-row"><div className="user"><div className="avatar">{initials}</div><div><strong>{username}</strong></div></div><button className="account-settings quick-theme-toggle" type="button" onClick={toggleTheme} aria-label={theme === 'dark' ? 'Usar modo claro' : 'Usar modo oscuro'} title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}>{theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}</button><Link className={`account-settings ${location.pathname === '/settings' ? 'active' : ''}`} to="/settings" aria-label="Configuración" title="Configuración"><SettingsIcon size={18} /></Link></div>
       <button className="logout" type="button" onClick={handleSignOut}><LogOut size={17} /> Cerrar sesión</button>
     </div>
   </aside>
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return <div className="app-shell"><Sidebar /><main className="main">{children}</main></div>
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('devhub-sidebar-collapsed') === 'true')
+  const toggleSidebar = () => setSidebarCollapsed(current => {
+    const next = !current
+    localStorage.setItem('devhub-sidebar-collapsed', String(next))
+    return next
+  })
+  return <div className={`app-shell ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}><Sidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} /><main className="main">{children}</main></div>
 }
 
 function Dashboard() {
@@ -216,6 +225,7 @@ function MyTasksPage() {
 function SettingsPage() {
   const { user, updateEmail, updatePassword } = useAuth()
   const location = useLocation()
+  const { theme, setTheme } = useTheme()
   const [username, setUsername] = useState(user?.user_metadata.username || '')
   const [email, setEmail] = useState(user?.email || '')
   const [newPassword, setNewPassword] = useState('')
@@ -262,7 +272,7 @@ function SettingsPage() {
 
   return <Shell><div className="settings-page"><div className="settings-heading"><p className="eyebrow">TU CUENTA</p><h1>Configuración</h1><p>Administrá tus datos y la seguridad de tu cuenta.</p></div>
     {error && <div className="form-message error" role="alert">{error}</div>}
-    <div className="settings-grid"><form className="settings-card" onSubmit={saveProfile}><div className="settings-card-title"><span><UserRound /></span><div><h2>Perfil</h2><p>La información que identifica tu cuenta.</p></div></div><label>Nombre<input value={username} onChange={event => setUsername(event.target.value)} /></label><label>Email<input type="email" value={email} onChange={event => setEmail(event.target.value)} /></label>{profileMessage && <div className="form-message success">{profileMessage}</div>}<button className="button primary" disabled={savingProfile}><Save size={17} /> {savingProfile ? 'Guardando...' : 'Guardar cambios'}</button></form>
+    <div className="settings-grid"><section className="settings-card appearance-card"><div className="settings-card-title"><span>{theme === 'dark' ? <Moon /> : <Sun />}</span><div><h2>Apariencia</h2><p>Elegí cómo querés ver tu espacio de trabajo.</p></div></div><div className="theme-options"><button className={theme === 'light' ? 'active' : ''} type="button" onClick={() => setTheme('light')}><span className="theme-preview light-preview"><i /><i /><i /></span><strong><Sun size={16} /> Claro</strong></button><button className={theme === 'dark' ? 'active' : ''} type="button" onClick={() => setTheme('dark')}><span className="theme-preview dark-preview"><i /><i /><i /></span><strong><Moon size={16} /> Oscuro</strong></button></div></section><form className="settings-card" onSubmit={saveProfile}><div className="settings-card-title"><span><UserRound /></span><div><h2>Perfil</h2><p>La información que identifica tu cuenta.</p></div></div><label>Nombre<input value={username} onChange={event => setUsername(event.target.value)} /></label><label>Email<input type="email" value={email} onChange={event => setEmail(event.target.value)} /></label>{profileMessage && <div className="form-message success">{profileMessage}</div>}<button className="button primary" disabled={savingProfile}><Save size={17} /> {savingProfile ? 'Guardando...' : 'Guardar cambios'}</button></form>
       <form className="settings-card" onSubmit={savePassword}><div className="settings-card-title"><span><KeyRound /></span><div><h2>Contraseña</h2><p>Usá una contraseña única de al menos 8 caracteres.</p></div></div><label>Nueva contraseña<input type="password" autoComplete="new-password" value={newPassword} onChange={event => setNewPassword(event.target.value)} /></label><label>Confirmar contraseña<input type="password" autoComplete="new-password" value={confirmation} onChange={event => setConfirmation(event.target.value)} /></label>{passwordMessage && <div className="form-message success">{passwordMessage}</div>}<button className="button primary" disabled={savingPassword}><KeyRound size={17} /> {savingPassword ? 'Actualizando...' : 'Actualizar contraseña'}</button></form>
     </div></div></Shell>
 }
