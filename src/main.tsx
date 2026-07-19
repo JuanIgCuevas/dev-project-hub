@@ -6,6 +6,7 @@ import { App } from './App'
 import { AuthProvider } from './features/auth/AuthProvider'
 import { ThemeProvider } from './features/theme/ThemeProvider'
 import { PreferencesProvider } from './features/preferences/PreferencesProvider'
+import { FocusProvider } from './features/focus/FocusProvider'
 import './styles.css'
 
 const queryClient = new QueryClient({
@@ -18,9 +19,11 @@ createRoot(document.getElementById('root')!).render(
       <ThemeProvider>
         <PreferencesProvider>
           <AuthProvider>
-            <BrowserRouter>
-              <App />
-            </BrowserRouter>
+            <FocusProvider>
+              <BrowserRouter>
+                <App />
+              </BrowserRouter>
+            </FocusProvider>
           </AuthProvider>
         </PreferencesProvider>
       </ThemeProvider>

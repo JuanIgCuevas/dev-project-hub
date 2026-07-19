@@ -2,6 +2,7 @@ import { createContext, useContext } from 'react'
 
 export type DefaultPage = '/dashboard' | '/tasks' | '/ideas'
 export type DefaultTaskView = 'list' | 'kanban'
+export type FocusTimerPosition = 'top-right' | 'top-left' | 'bottom-left'
 
 export interface AppPreferences {
   defaultPage: DefaultPage
@@ -9,6 +10,13 @@ export interface AppPreferences {
   assistantEnabled: boolean
   assistantSuggestions: boolean
   proactiveRecommendations: boolean
+  focusDefaultMinutes: number
+  focusTimerPosition: FocusTimerPosition
+  focusStartMinimized: boolean
+  focusSoundEnabled: boolean
+  focusDailyGoalMinutes: number
+  focusConfirmDiscard: boolean
+  assistantUseFocusHistory: boolean
 }
 
 export interface PreferencesContextValue {
@@ -22,6 +30,13 @@ export const defaultPreferences: AppPreferences = {
   assistantEnabled: true,
   assistantSuggestions: true,
   proactiveRecommendations: false,
+  focusDefaultMinutes: 60,
+  focusTimerPosition: 'top-right',
+  focusStartMinimized: false,
+  focusSoundEnabled: true,
+  focusDailyGoalMinutes: 60,
+  focusConfirmDiscard: true,
+  assistantUseFocusHistory: true,
 }
 
 export const PreferencesContext = createContext<PreferencesContextValue | null>(null)

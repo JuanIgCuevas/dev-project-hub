@@ -8,6 +8,7 @@ import { useMyTasks } from '../tasks/taskApi'
 import type { TaskOverview } from '../tasks/taskApi'
 import { usePreferences } from '../preferences/preferencesContext'
 import { getProjectPulse } from '../projects/projectHealth'
+import { useMyFocusSessions } from '../focus/focusApi'
 
 type AssistantMessage = {
   id: number
@@ -24,6 +25,7 @@ const suggestions = [
   '¿Tengo tareas vencidas?',
   'Mostrame las tareas prioritarias',
   '¿Qué ideas tengo pendientes?',
+  '¿Cómo vienen mis sesiones Focus?',
 ]
 
 function getFollowUpSuggestions(question: string) {
@@ -34,6 +36,7 @@ function getFollowUpSuggestions(question: string) {
   if (/pausad/.test(query)) return ['¿Qué proyecto debería continuar?', '¿Tengo tareas vencidas?', '¿Qué ideas tengo pendientes?']
   if (/pulse|salud|ritmo|abandon|rescate/.test(query)) return ['Tengo 30 minutos, ¿qué hago?', '¿Tengo tareas vencidas?', 'Mostrame las tareas prioritarias']
   if (/30 min|media hora|60 min|una hora|1 hora|2 horas/.test(query)) return ['¿Cómo está el pulse de mis proyectos?', '¿Tengo tareas vencidas?', '¿Qué ideas tengo pendientes?']
+  if (/focus|sesion|tiempo enfocado|productividad/.test(query)) return ['¿Qué proyecto debería continuar?', 'Tengo 30 minutos, ¿qué hago?', 'Dame un resumen general']
   if (/proyecto|continuar|seguir|hoy|recomend/.test(query)) return ['¿Tengo tareas vencidas?', 'Mostrame las tareas prioritarias', '¿Qué ideas tengo pendientes?']
   if (/resumen|estado|como voy/.test(query)) return ['¿Qué proyecto debería continuar?', '¿Tengo tareas vencidas?', '¿Qué ideas tengo pendientes?']
   return suggestions
@@ -42,7 +45,7 @@ function getFollowUpSuggestions(question: string) {
 const initialMessage: AssistantMessage = {
   id: 1,
   role: 'assistant',
-  text: '¡Hola! Soy el asistente de DevHub. Puedo ayudarte a decidir qué continuar y revisar tus proyectos, tareas e ideas.',
+  text: '¡Hola! Soy el asistente de DevHub. Puedo ayudarte a decidir qué continuar y revisar tus proyectos, tareas, ideas y sesiones Focus.',
 }
 
 function normalize(value: string) {
@@ -72,13 +75,15 @@ export function AssistantWidget() {
   const { data: projects = [], isLoading: loadingProjects } = useProjects()
   const { data: tasks = [], isLoading: loadingTasks } = useMyTasks()
   const { data: ideas = [], isLoading: loadingIdeas } = useIdeas()
+  const { data: storedFocusSessions = [], isLoading: loadingFocus } = useMyFocusSessions(preferences.assistantUseFocusHistory)
+  const focusSessions = preferences.assistantUseFocusHistory ? storedFocusSessions : []
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
   const [messages, setMessages] = useState<AssistantMessage[]>([initialMessage])
   const [activeSuggestions, setActiveSuggestions] = useState(suggestions)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const suggestionsRef = useRef<HTMLDivElement>(null)
-  const loading = loadingProjects || loadingTasks || loadingIdeas
+  const loading = loadingProjects || loadingTasks || loadingIdeas || (preferences.assistantUseFocusHistory && loadingFocus)
 
   useEffect(() => {
     if (open) messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -94,9 +99,21 @@ export function AssistantWidget() {
     const overdueTasks = pendingTasks.filter(task => task.due_date && new Date(`${task.due_date}T23:59:59`) < new Date())
     const highPriorityTasks = pendingTasks.filter(task => task.priority === 'high')
     const pendingIdeas = ideas.filter(idea => idea.status !== 'archived' && !idea.converted_project_id)
+    const lastThirtyDays = Date.now() - 30 * 24 * 60 * 60 * 1000
+    const recentFocusSessions = focusSessions.filter(session => new Date(session.completed_at).getTime() >= lastThirtyDays)
+    const recentFocusMinutes = Math.round(recentFocusSessions.reduce((total, session) => total + session.focused_seconds, 0) / 60)
+    const todayKey = new Date().toDateString()
+    const todayFocusMinutes = Math.round(focusSessions.filter(session => new Date(session.completed_at).toDateString() === todayKey).reduce((total, session) => total + session.focused_seconds, 0) / 60)
 
     if (/hola|buenas|ayuda|que podes|qué podés/.test(query)) {
-      return { text: 'Puedo recomendarte un proyecto, buscar tareas vencidas o prioritarias, resumir tus proyectos y revisar las ideas que todavía no convertiste.' }
+      return { text: 'Puedo recomendarte un proyecto, buscar tareas vencidas, revisar ideas y resumir tus sesiones Focus, incluyendo tiempo trabajado, resultados y próximos pasos.' }
+    }
+    if (/sesion.*focus|focus.*sesion|historial.*(focus|sesion)|tiempo enfocado|productividad|que resolvi|avance.*sesion/.test(query)) {
+      if (!preferences.assistantUseFocusHistory) return { text: 'El acceso del asistente al historial Focus está desactivado. Podés habilitarlo desde Configuración.' }
+      if (!focusSessions.length) return { text: 'Todavía no guardaste sesiones Focus. Cuando termines una, elegí “Guardar sesión” para empezar a construir tu historial.' }
+      const latest = focusSessions[0]
+      const details = [latest.outcome && `Último resultado: ${latest.outcome}`, latest.pending && `Pendiente: ${latest.pending}`, latest.next_step && `Próximo paso: ${latest.next_step}`].filter(Boolean)
+      return { text: `Hoy llevás ${todayFocusMinutes} de ${preferences.focusDailyGoalMinutes} minutos de tu objetivo. En los últimos 30 días guardaste ${recentFocusSessions.length} ${recentFocusSessions.length === 1 ? 'sesión' : 'sesiones'} y acumulaste ${recentFocusMinutes} minutos de foco. La más reciente fue en “${latest.project_name}” (${Math.max(1, Math.round(latest.focused_seconds / 60))} min).${details.length ? `\n${formatList(details as string[])}` : ''}`, link: `/projects/${latest.project_id}`, linkLabel: 'Ver historial Focus' }
     }
     if (/vencid|atrasad|fuera de fecha/.test(query)) {
       if (!overdueTasks.length) return { text: '¡Vas al día! No tenés tareas vencidas.' }
@@ -138,14 +155,17 @@ export function AssistantWidget() {
     if (/proyecto|continuar|seguir|hoy|recomend/.test(query)) {
       const recommendation = getRecommendedProject(projects, tasks)
       if (!recommendation) return { text: 'No encontré proyectos activos para recomendarte. Podés crear uno desde una idea.', link: '/ideas', linkLabel: 'Explorar ideas' }
-      const reason = recommendation.pending
+      const latestProjectSession = focusSessions.find(session => session.project_id === recommendation.project.id)
+      const reason = latestProjectSession?.next_step
+        ? `tu último próximo paso fue “${latestProjectSession.next_step}”`
+        : recommendation.pending
         ? `tiene ${recommendation.pending} ${recommendation.pending === 1 ? 'tarea pendiente' : 'tareas pendientes'} y es el que más atención necesita`
         : 'está activo y puede ser un buen lugar para definir el próximo paso'
       return { text: `Te recomiendo continuar con “${recommendation.project.name}”: ${reason}.`, link: `/projects/${recommendation.project.id}`, linkLabel: 'Abrir proyecto' }
     }
     if (/resumen|estado|como voy|cómo voy/.test(query)) {
       const active = projects.filter(project => project.status === 'in_progress').length
-      return { text: `Tu espacio tiene ${projects.length} proyectos, ${active} en progreso, ${pendingTasks.length} tareas pendientes y ${pendingIdeas.length} ideas por evaluar.` }
+      return { text: `Tu espacio tiene ${projects.length} proyectos, ${active} en progreso, ${pendingTasks.length} tareas pendientes y ${pendingIdeas.length} ideas por evaluar. En los últimos 30 días registraste ${recentFocusMinutes} minutos de trabajo enfocado.` }
     }
     return { text: 'Todavía no entendí esa consulta. Probá preguntándome qué proyecto continuar, si tenés tareas vencidas, cuáles son prioritarias o qué ideas están pendientes.' }
   }

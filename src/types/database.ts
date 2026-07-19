@@ -62,3 +62,21 @@ export interface ProjectDecision {
   decision: string
   created_at: string
 }
+
+export interface FocusSessionRecord {
+  id: string
+  project_id: string
+  task_ids: string[]
+  task_titles: string[]
+  planned_seconds: number
+  focused_seconds: number
+  started_at: string
+  completed_at: string
+  completion_reason: 'timer' | 'manual'
+  outcome: string | null
+  pending: string | null
+  next_step: string | null
+  rating: number | null
+  created_at: string
+  updated_at: string
+}
