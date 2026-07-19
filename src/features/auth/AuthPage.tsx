@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { z } from 'zod'
 import { useAuth } from './AuthProvider'
+import { usePreferences } from '../preferences/preferencesContext'
 
 const authSchema = z.object({
   email: z.email('Ingresá un email válido.'),
@@ -23,13 +24,14 @@ function getAuthError(error: unknown) {
 
 export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   const { signIn, signUp, user } = useAuth()
+  const { preferences } = usePreferences()
   const navigate = useNavigate()
   const location = useLocation()
   const [serverError, setServerError] = useState('')
   const [notice, setNotice] = useState('')
   const isLogin = mode === 'login'
   const { register, handleSubmit, setError, formState: { errors, isSubmitting } } = useForm<AuthValues>({ resolver: zodResolver(authSchema) })
-  if (user) return <Navigate to="/dashboard" replace />
+  if (user) return <Navigate to={preferences.defaultPage} replace />
 
   const onSubmit = async (values: AuthValues) => {
     setServerError(''); setNotice('')
@@ -45,10 +47,10 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
       if (isLogin) {
         await signIn(values.email, values.password)
         const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname
-        navigate(from || '/dashboard', { replace: true })
+        navigate(from || preferences.defaultPage, { replace: true })
       } else {
         const hasSession = await signUp({ ...values, username: values.username! })
-        if (hasSession) navigate('/dashboard', { replace: true })
+        if (hasSession) navigate(preferences.defaultPage, { replace: true })
         else setNotice('Cuenta creada. Revisá tu email para confirmar el acceso.')
       }
     } catch (error) { setServerError(getAuthError(error)) }

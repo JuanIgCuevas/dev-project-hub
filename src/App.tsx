@@ -1,4 +1,4 @@
-import { ArrowRight, CalendarDays, CheckCircle2, Code2, Columns3, ExternalLink, FolderKanban, Github, GripVertical, KeyRound, LayoutDashboard, Lightbulb, ListTodo, LogOut, Moon, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Rocket, Rows3, Save, Search, Settings as SettingsIcon, Sparkles, Sun, Trash2, UserRound } from 'lucide-react'
+import { ArrowRight, Bot, CalendarDays, CheckCircle2, Code2, Columns3, Database, Download, ExternalLink, FolderKanban, Github, GripVertical, KeyRound, Laptop, LayoutDashboard, Lightbulb, ListTodo, LogOut, Moon, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Rocket, Rows3, Save, Search, Settings as SettingsIcon, ShieldCheck, SlidersHorizontal, Sparkles, Sun, Trash2, UserRound } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { AuthPage } from './features/auth/AuthPage'
@@ -13,6 +13,7 @@ import { useDeleteTask, useMyTasks, useUpdateTaskStatus } from './features/tasks
 import type { TaskOverview } from './features/tasks/taskApi'
 import { supabase } from './lib/supabase'
 import { useTheme } from './features/theme/themeContext'
+import { usePreferences } from './features/preferences/preferencesContext'
 import type { ProjectStatus, Task, TaskStatus } from './types/database'
 
 const projectStatus: Record<ProjectStatus, { label: string; tone: string }> = {
@@ -36,7 +37,8 @@ function relativeDate(value: string) {
 }
 
 function Brand() {
-  return <Link className="brand" to="/dashboard"><span className="brand-mark"><Code2 size={19} /></span><span className="brand-name">Dev<span>Hub</span></span></Link>
+  const { preferences } = usePreferences()
+  return <Link className="brand" to={preferences.defaultPage}><span className="brand-mark"><Code2 size={19} /></span><span className="brand-name">Dev<span>Hub</span></span></Link>
 }
 
 function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
@@ -66,13 +68,14 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
+  const { preferences } = usePreferences()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('devhub-sidebar-collapsed') === 'true')
   const toggleSidebar = () => setSidebarCollapsed(current => {
     const next = !current
     localStorage.setItem('devhub-sidebar-collapsed', String(next))
     return next
   })
-  return <div className={`app-shell ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}><Sidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} /><main className="main">{children}</main><AssistantWidget /></div>
+  return <div className={`app-shell ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}><Sidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} /><main className="main">{children}</main>{preferences.assistantEnabled && <AssistantWidget />}</div>
 }
 
 function Dashboard() {
@@ -179,6 +182,7 @@ function ProjectEditorPage({ mode }: { mode: 'create' | 'edit' }) {
 }
 
 function MyTasksPage() {
+  const { preferences } = usePreferences()
   const { data: tasks = [], isLoading, error } = useMyTasks()
   const updateTaskStatus = useUpdateTaskStatus()
   const deleteTask = useDeleteTask()
@@ -186,7 +190,7 @@ function MyTasksPage() {
   const [projectFilter, setProjectFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState<'all' | TaskStatus>('all')
   const [priorityFilter, setPriorityFilter] = useState<'all' | 'low' | 'medium' | 'high'>('all')
-  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list')
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>(preferences.defaultTaskView)
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null)
   const [dropTarget, setDropTarget] = useState<TaskStatus | null>(null)
   const [editingTask, setEditingTask] = useState<TaskOverview | undefined>()
@@ -233,9 +237,11 @@ function MyTasksPage() {
 }
 
 function SettingsPage() {
-  const { user, updateEmail, updatePassword } = useAuth()
+  const { user, updateEmail, updatePassword, signOutAll } = useAuth()
   const location = useLocation()
-  const { theme, setTheme } = useTheme()
+  const navigate = useNavigate()
+  const { theme, preference, setTheme } = useTheme()
+  const { preferences, updatePreference } = usePreferences()
   const [username, setUsername] = useState(user?.user_metadata.username || '')
   const [email, setEmail] = useState(user?.email || '')
   const [newPassword, setNewPassword] = useState('')
@@ -245,6 +251,8 @@ function SettingsPage() {
   const [error, setError] = useState('')
   const [savingProfile, setSavingProfile] = useState(false)
   const [savingPassword, setSavingPassword] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  const [closingSessions, setClosingSessions] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -280,10 +288,39 @@ function SettingsPage() {
     finally { setSavingPassword(false) }
   }
 
-  return <Shell><div className="settings-page"><div className="settings-heading"><p className="eyebrow">TU CUENTA</p><h1>Configuración</h1><p>Administrá tus datos y la seguridad de tu cuenta.</p></div>
+  const exportData = async () => {
+    setError(''); setExporting(true)
+    try {
+      const { data, error: exportError } = await supabase.rpc('api_export_my_data')
+      if (exportError) throw exportError
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = `devhub-export-${new Date().toISOString().slice(0, 10)}.json`
+      anchor.click()
+      URL.revokeObjectURL(url)
+    } catch { setError('No pudimos exportar tus datos.') }
+    finally { setExporting(false) }
+  }
+
+  const closeAllSessions = async () => {
+    if (!window.confirm('¿Cerrar tu sesión en todos los dispositivos?')) return
+    setError(''); setClosingSessions(true)
+    try { await signOutAll(); navigate('/login', { replace: true }) }
+    catch { setError('No pudimos cerrar todas las sesiones.'); setClosingSessions(false) }
+  }
+
+  return <Shell><div className="settings-page"><div className="settings-heading"><p className="eyebrow">TU ESPACIO</p><h1>Configuración</h1><p>Personalizá la experiencia, tu cuenta y la privacidad de tus datos.</p></div>
     {error && <div className="form-message error" role="alert">{error}</div>}
-    <div className="settings-grid"><section className="settings-card appearance-card"><div className="settings-card-title"><span>{theme === 'dark' ? <Moon /> : <Sun />}</span><div><h2>Apariencia</h2><p>Elegí cómo querés ver tu espacio de trabajo.</p></div></div><div className="theme-options"><button className={theme === 'light' ? 'active' : ''} type="button" onClick={() => setTheme('light')}><span className="theme-preview light-preview"><i /><i /><i /></span><strong><Sun size={16} /> Claro</strong></button><button className={theme === 'dark' ? 'active' : ''} type="button" onClick={() => setTheme('dark')}><span className="theme-preview dark-preview"><i /><i /><i /></span><strong><Moon size={16} /> Oscuro</strong></button></div></section><form className="settings-card" onSubmit={saveProfile}><div className="settings-card-title"><span><UserRound /></span><div><h2>Perfil</h2><p>La información que identifica tu cuenta.</p></div></div><label>Nombre<input value={username} onChange={event => setUsername(event.target.value)} /></label><label>Email<input type="email" value={email} onChange={event => setEmail(event.target.value)} /></label>{profileMessage && <div className="form-message success">{profileMessage}</div>}<button className="button primary" disabled={savingProfile}><Save size={17} /> {savingProfile ? 'Guardando...' : 'Guardar cambios'}</button></form>
+    <div className="settings-grid">
+      <section className="settings-card settings-wide"><div className="settings-card-title"><span>{preference === 'system' ? <Laptop /> : theme === 'dark' ? <Moon /> : <Sun />}</span><div><h2>Apariencia</h2><p>Elegí el tema o seguí automáticamente la configuración del dispositivo.</p></div></div><div className="theme-options"><button className={preference === 'light' ? 'active' : ''} type="button" onClick={() => setTheme('light')}><span className="theme-preview light-preview"><i /><i /><i /></span><strong><Sun size={16} /> Claro</strong></button><button className={preference === 'dark' ? 'active' : ''} type="button" onClick={() => setTheme('dark')}><span className="theme-preview dark-preview"><i /><i /><i /></span><strong><Moon size={16} /> Oscuro</strong></button><button className={preference === 'system' ? 'active' : ''} type="button" onClick={() => setTheme('system')}><span className="theme-preview system-preview"><i /><i /><i /></span><strong><Laptop size={16} /> Sistema</strong></button></div></section>
+      <section className="settings-card settings-wide"><div className="settings-card-title"><span><SlidersHorizontal /></span><div><h2>Preferencias del espacio</h2><p>Definí dónde empezar y cómo organizar tu trabajo.</p></div></div><div className="settings-preference-grid"><label>Página de inicio<select value={preferences.defaultPage} onChange={event => updatePreference('defaultPage', event.target.value as typeof preferences.defaultPage)}><option value="/dashboard">Proyectos</option><option value="/tasks">Mis tareas</option><option value="/ideas">Ideas</option></select><small>Se abrirá después de iniciar sesión y al tocar el logo.</small></label><label>Vista predeterminada de tareas<select value={preferences.defaultTaskView} onChange={event => updatePreference('defaultTaskView', event.target.value as typeof preferences.defaultTaskView)}><option value="list">Lista</option><option value="kanban">Kanban</option></select><small>Se aplicará al volver a entrar en Mis tareas.</small></label></div></section>
+      <section className="settings-card settings-wide"><div className="settings-card-title"><span><Bot /></span><div><h2>Asistente DevHub</h2><p>Controlá su presencia y el tipo de ayuda que querés recibir.</p></div></div><div className="settings-switches"><label className="setting-switch-row"><div><strong>Mostrar asistente</strong><small>Activa el botón flotante en toda la aplicación.</small></div><input type="checkbox" checked={preferences.assistantEnabled} onChange={event => updatePreference('assistantEnabled', event.target.checked)} /><i /></label><label className="setting-switch-row"><div><strong>Sugerencias rápidas</strong><small>Muestra preguntas relacionadas debajo de la conversación.</small></div><input type="checkbox" checked={preferences.assistantSuggestions} disabled={!preferences.assistantEnabled} onChange={event => updatePreference('assistantSuggestions', event.target.checked)} /><i /></label><label className="setting-switch-row"><div><strong>Recomendación al abrir</strong><small>Analiza tu trabajo y propone automáticamente un proyecto.</small></div><input type="checkbox" checked={preferences.proactiveRecommendations} disabled={!preferences.assistantEnabled} onChange={event => updatePreference('proactiveRecommendations', event.target.checked)} /><i /></label></div></section>
+      <form className="settings-card" onSubmit={saveProfile}><div className="settings-card-title"><span><UserRound /></span><div><h2>Perfil</h2><p>La información que identifica tu cuenta.</p></div></div><label>Nombre<input value={username} onChange={event => setUsername(event.target.value)} /></label><label>Email<input type="email" value={email} onChange={event => setEmail(event.target.value)} /></label>{profileMessage && <div className="form-message success">{profileMessage}</div>}<button className="button primary" disabled={savingProfile}><Save size={17} /> {savingProfile ? 'Guardando...' : 'Guardar cambios'}</button></form>
       <form className="settings-card" onSubmit={savePassword}><div className="settings-card-title"><span><KeyRound /></span><div><h2>Contraseña</h2><p>Usá una contraseña única de al menos 8 caracteres.</p></div></div><label>Nueva contraseña<input type="password" autoComplete="new-password" value={newPassword} onChange={event => setNewPassword(event.target.value)} /></label><label>Confirmar contraseña<input type="password" autoComplete="new-password" value={confirmation} onChange={event => setConfirmation(event.target.value)} /></label>{passwordMessage && <div className="form-message success">{passwordMessage}</div>}<button className="button primary" disabled={savingPassword}><KeyRound size={17} /> {savingPassword ? 'Actualizando...' : 'Actualizar contraseña'}</button></form>
+      <section className="settings-card"><div className="settings-card-title"><span><ShieldCheck /></span><div><h2>Sesiones</h2><p>Protegé la cuenta si dejaste una sesión abierta.</p></div></div><p className="settings-card-copy">Cierra el acceso de DevHub en todos los dispositivos, incluido este.</p><button className="button" type="button" onClick={closeAllSessions} disabled={closingSessions}><LogOut size={17} /> {closingSessions ? 'Cerrando sesiones...' : 'Cerrar todas las sesiones'}</button></section>
+      <section className="settings-card"><div className="settings-card-title"><span><Database /></span><div><h2>Datos y privacidad</h2><p>Descargá una copia de toda tu información.</p></div></div><p className="settings-card-copy">Incluye tu perfil, proyectos, tareas e ideas en un archivo JSON.</p><button className="button" type="button" onClick={exportData} disabled={exporting}><Download size={17} /> {exporting ? 'Preparando archivo...' : 'Exportar mis datos'}</button></section>
     </div></div></Shell>
 }
 

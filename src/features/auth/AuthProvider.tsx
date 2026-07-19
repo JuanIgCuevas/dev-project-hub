@@ -10,6 +10,7 @@ interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<void>
   signUp: (input: SignUpInput) => Promise<boolean>
   signOut: () => Promise<void>
+  signOutAll: () => Promise<void>
   sendPasswordReset: (email: string) => Promise<void>
   updatePassword: (password: string) => Promise<void>
   updateEmail: (email: string) => Promise<void>
@@ -56,6 +57,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
     async signOut() {
       const { error } = await supabase.auth.signOut()
+      if (error) throw error
+    },
+    async signOutAll() {
+      const { error } = await supabase.auth.signOut({ scope: 'global' })
       if (error) throw error
     },
     async sendPasswordReset(email) {

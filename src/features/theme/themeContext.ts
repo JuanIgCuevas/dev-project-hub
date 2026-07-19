@@ -1,10 +1,12 @@
 import { createContext, useContext } from 'react'
 
 export type Theme = 'light' | 'dark'
+export type ThemePreference = Theme | 'system'
 
 export type ThemeContextValue = {
   theme: Theme
-  setTheme: (theme: Theme) => void
+  preference: ThemePreference
+  setTheme: (theme: ThemePreference) => void
   toggleTheme: () => void
 }
 

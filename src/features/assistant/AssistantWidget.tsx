@@ -6,6 +6,7 @@ import { useProjects } from '../projects/projectApi'
 import type { ProjectWithTasks } from '../projects/projectApi'
 import { useMyTasks } from '../tasks/taskApi'
 import type { TaskOverview } from '../tasks/taskApi'
+import { usePreferences } from '../preferences/preferencesContext'
 
 type AssistantMessage = {
   id: number
@@ -64,6 +65,7 @@ function getRecommendedProject(projects: ProjectWithTasks[], tasks: TaskOverview
 }
 
 export function AssistantWidget() {
+  const { preferences } = usePreferences()
   const { data: projects = [], isLoading: loadingProjects } = useProjects()
   const { data: tasks = [], isLoading: loadingTasks } = useMyTasks()
   const { data: ideas = [], isLoading: loadingIdeas } = useIdeas()
@@ -133,6 +135,17 @@ export function AssistantWidget() {
     return { text: 'Todavía no entendí esa consulta. Probá preguntándome qué proyecto continuar, si tenés tareas vencidas, cuáles son prioritarias o qué ideas están pendientes.' }
   }
 
+  const toggleAssistant = () => {
+    const nextOpen = !open
+    if (nextOpen && preferences.proactiveRecommendations && messages.length === 1 && !loading) {
+      const proactiveQuestion = '¿Qué proyecto debería continuar?'
+      const response = answer(proactiveQuestion)
+      setMessages(current => [...current, { id: Date.now(), role: 'assistant', text: `Recomendación para hoy:\n${response.text}`, link: response.link, linkLabel: response.linkLabel }])
+      setActiveSuggestions(getFollowUpSuggestions(proactiveQuestion))
+    }
+    setOpen(nextOpen)
+  }
+
   const send = (question: string) => {
     const trimmed = question.trim()
     if (!trimmed) return
@@ -153,5 +166,5 @@ export function AssistantWidget() {
     suggestionsRef.current?.scrollBy({ left: direction * 210, behavior: 'smooth' })
   }
 
-  return <><button className={`assistant-launcher ${open ? 'open' : ''}`} type="button" onClick={() => setOpen(current => !current)} aria-label={open ? 'Cerrar asistente' : 'Abrir asistente'}>{open ? <X /> : <><Sparkles className="assistant-spark" /><Bot /></>}</button>{open && <aside className="assistant-panel" aria-label="Asistente de DevHub"><header><span><Bot /></span><div><strong>Asistente DevHub</strong><small><i /> Sin servicios de IA externos</small></div><button type="button" onClick={resetConversation} aria-label="Limpiar conversación" title="Limpiar conversación"><RotateCcw /></button></header><div className="assistant-messages">{messages.map(message => <div className={`assistant-message ${message.role}`} key={message.id}><span>{message.text}</span>{message.link && <Link to={message.link} onClick={() => setOpen(false)}>{message.linkLabel}<ExternalLink size={13} /></Link>}</div>)}<div ref={messagesEndRef} /></div><div className="assistant-suggestion-row"><button className="suggestion-scroll" type="button" onClick={() => scrollSuggestions(-1)} aria-label="Ver sugerencias anteriores"><ChevronLeft /></button><div className="assistant-suggestions" ref={suggestionsRef}>{activeSuggestions.map(suggestion => <button type="button" key={suggestion} onClick={() => send(suggestion)}>{suggestion}</button>)}</div><button className="suggestion-scroll" type="button" onClick={() => scrollSuggestions(1)} aria-label="Ver más sugerencias"><ChevronRight /></button></div><form className="assistant-input" onSubmit={event => { event.preventDefault(); send(input) }}><input value={input} onChange={event => setInput(event.target.value)} placeholder="Preguntá sobre tu trabajo..." aria-label="Mensaje para el asistente" /><button type="submit" disabled={!input.trim()} aria-label="Enviar"><Send /></button></form></aside>}</>
+  return <><button className={`assistant-launcher ${open ? 'open' : ''}`} type="button" onClick={toggleAssistant} aria-label={open ? 'Cerrar asistente' : 'Abrir asistente'}>{open ? <X /> : <><Sparkles className="assistant-spark" /><Bot /></>}</button>{open && <aside className="assistant-panel" aria-label="Asistente de DevHub"><header><span><Bot /></span><div><strong>Asistente DevHub</strong><small><i /> Sin servicios de IA externos</small></div><button type="button" onClick={resetConversation} aria-label="Limpiar conversación" title="Limpiar conversación"><RotateCcw /></button></header><div className="assistant-messages">{messages.map(message => <div className={`assistant-message ${message.role}`} key={message.id}><span>{message.text}</span>{message.link && <Link to={message.link} onClick={() => setOpen(false)}>{message.linkLabel}<ExternalLink size={13} /></Link>}</div>)}<div ref={messagesEndRef} /></div>{preferences.assistantSuggestions && <div className="assistant-suggestion-row"><button className="suggestion-scroll" type="button" onClick={() => scrollSuggestions(-1)} aria-label="Ver sugerencias anteriores"><ChevronLeft /></button><div className="assistant-suggestions" ref={suggestionsRef}>{activeSuggestions.map(suggestion => <button type="button" key={suggestion} onClick={() => send(suggestion)}>{suggestion}</button>)}</div><button className="suggestion-scroll" type="button" onClick={() => scrollSuggestions(1)} aria-label="Ver más sugerencias"><ChevronRight /></button></div>}<form className="assistant-input" onSubmit={event => { event.preventDefault(); send(input) }}><input value={input} onChange={event => setInput(event.target.value)} placeholder="Preguntá sobre tu trabajo..." aria-label="Mensaje para el asistente" /><button type="submit" disabled={!input.trim()} aria-label="Enviar"><Send /></button></form></aside>}</>
 }
