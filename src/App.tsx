@@ -64,9 +64,9 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
     <nav>
       <Link className={`nav-link ${location.pathname === '/dashboard' ? 'active' : ''}`} to="/dashboard" title="Inicio"><LayoutDashboard size={18} /><span className="nav-label">Inicio</span></Link>
       <Link className={`nav-link ${projectsActive ? 'active' : ''}`} to="/projects" title="Proyectos"><FolderKanban size={18} /><span className="nav-label">Proyectos</span></Link>
-      <Link className={`nav-link ${location.pathname === '/tasks' ? 'active' : ''}`} to="/tasks" title="Mis tareas"><ListTodo size={18} /><span className="nav-label">Mis tareas</span></Link>
+      <Link className={`nav-link ${location.pathname === '/tasks' ? 'active' : ''}`} to="/tasks" title="Mis tareas"><ListTodo size={18} /><span className="nav-label">Tareas</span></Link>
       <Link className={`nav-link ${location.pathname === '/ideas' ? 'active' : ''}`} to="/ideas" title="Ideas"><Lightbulb size={18} /><span className="nav-label">Ideas</span></Link>
-      <Link className={`nav-link mobile-settings-link ${location.pathname === '/settings' ? 'active' : ''}`} to="/settings" aria-label="Configuración"><SettingsIcon size={18} /><span className="nav-label">Configuración</span></Link>
+      <Link className={`nav-link mobile-settings-link ${location.pathname === '/settings' ? 'active' : ''}`} to="/settings" aria-label="Configuración"><SettingsIcon size={18} /><span className="nav-label">Ajustes</span></Link>
       <button className="nav-link mobile-theme-toggle" type="button" onClick={toggleTheme}>{theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}<span className="nav-label">{theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}</span></button>
       <button className="nav-link mobile-logout" type="button" onClick={handleSignOut}><LogOut size={18} /><span className="nav-label">Salir</span></button>
     </nav>
@@ -116,6 +116,7 @@ function Dashboard() {
   const recentSession = focusSessions[0]
   return <Shell>
     <header className="topbar dashboard-topbar"><div><p className="eyebrow">{today}</p><h1>Buenos días, {username} <span>👋</span></h1><p>Este es el pulso general de todo lo que estás construyendo.</p></div><Link className="button" to="/projects">Ver proyectos <ArrowRight size={17} /></Link></header>
+    <div className="mobile-scroll-hint"><strong>Resumen rápido</strong><span>Deslizá para ver más <ArrowRight /></span></div>
     <section className="dashboard-summary" aria-label="Resumen general">
       <article className="summary-next-step">
         <div className="summary-card-head"><span><Rocket /></span><p className="eyebrow">TU PRÓXIMO PASO</p></div>
@@ -152,7 +153,7 @@ function ProjectsPage() {
 
   return <Shell><div className="projects-page">
     <header className="projects-heading"><div><p className="eyebrow">TU ESPACIO DE TRABAJO</p><h1>Proyectos</h1><p>Creá, buscá y administrá todo lo que estás construyendo.</p></div><Link className="button primary" to="/projects/new"><Plus size={18} /> Nuevo proyecto</Link></header>
-    <section className="stats projects-stats">
+    <section className="stats projects-stats" aria-label="Resumen de proyectos">
       <article><span className="stat-icon blue"><FolderKanban /></span><div><strong>{projects.length}</strong><p>Proyectos totales</p></div></article>
       <article><span className="stat-icon green"><Rocket /></span><div><strong>{projects.filter(project => project.status === 'in_progress').length}</strong><p>En progreso</p></div></article>
       <article><span className="stat-icon amber"><Timer /></span><div><strong>{projects.filter(project => project.status === 'paused').length}</strong><p>Pausados</p></div></article>
