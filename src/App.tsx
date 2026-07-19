@@ -2,6 +2,7 @@ import { ArrowRight, CalendarDays, CheckCircle2, Code2, Columns3, ExternalLink, 
 import { useEffect, useState } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { AuthPage } from './features/auth/AuthPage'
+import { AssistantWidget } from './features/assistant/AssistantWidget'
 import { useAuth } from './features/auth/AuthProvider'
 import { ForgotPasswordPage, ResetPasswordPage } from './features/auth/PasswordPages'
 import { ProjectForm } from './features/projects/ProjectForm'
@@ -71,7 +72,7 @@ function Shell({ children }: { children: React.ReactNode }) {
     localStorage.setItem('devhub-sidebar-collapsed', String(next))
     return next
   })
-  return <div className={`app-shell ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}><Sidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} /><main className="main">{children}</main></div>
+  return <div className={`app-shell ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}><Sidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} /><main className="main">{children}</main><AssistantWidget /></div>
 }
 
 function Dashboard() {
