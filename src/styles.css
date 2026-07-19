@@ -47,6 +47,12 @@ h1,h2,h3,.brand { font-family: 'Manrope', sans-serif; }
 }
 html{background:var(--canvas)}
 body{background:var(--canvas);color:var(--ink);transition:background-color .25s ease,color .25s ease}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.28s;animation-timing-function:ease-in-out}
+.main,.sidebar,.stats article,.project-card,.new-card,.panel,.project-form,.settings-card,.all-tasks-panel,.task-filters,.kanban-column,.kanban-card,.simple-auth,.simple-auth-card,.auth-page,.auth-panel,.assistant-panel,.focus-card,.rescue-card,.focus-session-dock,.focus-daily-goal,.idea-card,.idea-summary article,.idea-filters,input,textarea,select,.button{
+  transition-property:background-color,border-color,color,box-shadow,transform;
+  transition-duration:.24s;
+  transition-timing-function:ease;
+}
 .main{background:radial-gradient(circle at 88% 2%,#3cbb8820,transparent 27%),var(--canvas)}
 .sidebar{background:color-mix(in srgb,var(--surface) 88%,transparent);border-color:var(--line);backdrop-filter:blur(18px);box-shadow:8px 0 35px #15291c08;z-index:10}
 .brand-mark{background:linear-gradient(145deg,var(--green-bright),var(--green));box-shadow:0 8px 20px #177a5735}
@@ -86,6 +92,11 @@ input::placeholder,textarea::placeholder{color:color-mix(in srgb,var(--muted) 72
 .simple-auth{background:radial-gradient(circle at 75% 15%,#3cbb8824,transparent 24%),var(--canvas)}
 .error-state,.button.danger{background:color-mix(in srgb,#d65d56 9%,var(--surface));border-color:color-mix(in srgb,#d65d56 28%,var(--line))}
 .empty-search{background:var(--surface);border-color:var(--line)}
+.new-card strong,.progress-label strong{color:var(--ink)}
+.card-footer,.task-content small,.kanban-date,.kanban-card-top{color:var(--muted)}
+.tabs span,.icon-button:hover{background:var(--surface-soft)}
+.tabs span,.icon-button{color:var(--muted)}
+.route-loader span,.mini-loader{border-color:var(--line);border-top-color:var(--green)}
 .settings-card-title>span,.account-icon,.new-card>span{background:#20a77916;color:var(--green)}
 .appearance-card{grid-column:1/-1}
 .theme-options{display:grid;grid-template-columns:1fr 1fr;gap:14px}

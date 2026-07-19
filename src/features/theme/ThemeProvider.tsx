@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { ThemeContext } from './themeContext'
 import type { Theme, ThemePreference } from './themeContext'
 
@@ -9,7 +10,7 @@ function getInitialTheme(): ThemePreference {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [preference, setTheme] = useState<ThemePreference>(getInitialTheme)
+  const [preference, setPreference] = useState<ThemePreference>(getInitialTheme)
   const [systemTheme, setSystemTheme] = useState<Theme>(() => window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
   const theme: Theme = preference === 'system' ? systemTheme : preference
 
@@ -20,11 +21,20 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return () => media.removeEventListener('change', handleChange)
   }, [])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     document.documentElement.dataset.theme = theme
     document.documentElement.style.colorScheme = theme
     localStorage.setItem('devhub-theme', preference)
   }, [preference, theme])
+
+  const setTheme = (nextTheme: ThemePreference) => {
+    const transitionDocument = document as Document & { startViewTransition?: (callback: () => void) => void }
+    if (!transitionDocument.startViewTransition || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setPreference(nextTheme)
+      return
+    }
+    transitionDocument.startViewTransition(() => flushSync(() => setPreference(nextTheme)))
+  }
 
   return <ThemeContext.Provider value={{ theme, preference, setTheme, toggleTheme: () => setTheme(theme === 'light' ? 'dark' : 'light') }}>{children}</ThemeContext.Provider>
 }
