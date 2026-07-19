@@ -22,6 +22,8 @@ import type { TaskOverview } from './features/tasks/taskApi'
 import { supabase } from './lib/supabase'
 import { useTheme } from './features/theme/themeContext'
 import { usePreferences } from './features/preferences/preferencesContext'
+import { OnboardingTour } from './features/onboarding/OnboardingTour'
+import { onboardingStorageKey } from './features/onboarding/onboardingStorage'
 import type { ProjectStatus, Task, TaskStatus } from './types/database'
 
 const projectStatus: Record<ProjectStatus, { label: string; tone: string }> = {
@@ -79,13 +81,19 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
 
 function Shell({ children }: { children: React.ReactNode }) {
   const { preferences } = usePreferences()
+  const { user } = useAuth()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('devhub-sidebar-collapsed') === 'true')
+  const [showOnboarding, setShowOnboarding] = useState(() => Boolean(user && localStorage.getItem(onboardingStorageKey(user.id)) !== 'true'))
   const toggleSidebar = () => setSidebarCollapsed(current => {
     const next = !current
     localStorage.setItem('devhub-sidebar-collapsed', String(next))
     return next
   })
-  return <div className={`app-shell ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}><Sidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} /><main className="main">{children}</main><FocusSessionDock />{preferences.assistantEnabled && <AssistantWidget />}</div>
+  const finishOnboarding = () => {
+    if (user) localStorage.setItem(onboardingStorageKey(user.id), 'true')
+    setShowOnboarding(false)
+  }
+  return <div className={`app-shell ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}><Sidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} /><main className="main">{children}</main><FocusSessionDock />{preferences.assistantEnabled && <AssistantWidget />}{showOnboarding && <OnboardingTour onFinish={finishOnboarding} />}</div>
 }
 
 function Dashboard() {
@@ -389,6 +397,11 @@ function SettingsPage() {
     navigate('/login', { replace: true })
   }
 
+  const restartOnboarding = () => {
+    if (user) localStorage.removeItem(onboardingStorageKey(user.id))
+    navigate('/dashboard')
+  }
+
   return <Shell><div className="settings-page"><div className="settings-heading"><p className="eyebrow">TU ESPACIO</p><h1>Configuración</h1><p>Personalizá la experiencia, tu cuenta y la privacidad de tus datos.</p></div>
     {error && <div className="form-message error" role="alert">{error}</div>}
     <div className="settings-grid">
@@ -396,6 +409,7 @@ function SettingsPage() {
       <section className="settings-card settings-wide"><div className="settings-card-title"><span>{preference === 'system' ? <Laptop /> : theme === 'dark' ? <Moon /> : <Sun />}</span><div><h2>Apariencia</h2><p>Elegí el tema o seguí automáticamente la configuración del dispositivo.</p></div></div><div className="theme-options"><button className={preference === 'light' ? 'active' : ''} type="button" onClick={() => setTheme('light')}><span className="theme-preview light-preview"><i /><i /><i /></span><strong><Sun size={16} /> Claro</strong></button><button className={preference === 'dark' ? 'active' : ''} type="button" onClick={() => setTheme('dark')}><span className="theme-preview dark-preview"><i /><i /><i /></span><strong><Moon size={16} /> Oscuro</strong></button><button className={preference === 'system' ? 'active' : ''} type="button" onClick={() => setTheme('system')}><span className="theme-preview system-preview"><i /><i /><i /></span><strong><Laptop size={16} /> Sistema</strong></button></div></section>
       <section className="settings-card settings-wide"><div className="settings-card-title"><span><SlidersHorizontal /></span><div><h2>Preferencias del espacio</h2><p>Definí dónde empezar y cómo organizar tu trabajo.</p></div></div><div className="settings-preference-grid"><label>Página de inicio<select value={preferences.defaultPage} onChange={event => updatePreference('defaultPage', event.target.value as typeof preferences.defaultPage)}><option value="/dashboard">Inicio y resumen</option><option value="/projects">Proyectos</option><option value="/tasks">Mis tareas</option><option value="/ideas">Ideas</option></select><small>Se abrirá después de iniciar sesión y al tocar el logo.</small></label><label>Vista predeterminada de tareas<select value={preferences.defaultTaskView} onChange={event => updatePreference('defaultTaskView', event.target.value as typeof preferences.defaultTaskView)}><option value="list">Lista</option><option value="kanban">Kanban</option></select><small>Se aplicará al volver a entrar en Mis tareas.</small></label></div></section>
       <section className="settings-card settings-wide"><div className="settings-card-title"><span><Bot /></span><div><h2>Asistente DevHub</h2><p>Controlá su presencia y el tipo de ayuda que querés recibir.</p></div></div><div className="settings-switches"><label className="setting-switch-row"><div><strong>Mostrar asistente</strong><small>Activa el botón flotante en toda la aplicación.</small></div><input type="checkbox" checked={preferences.assistantEnabled} onChange={event => updatePreference('assistantEnabled', event.target.checked)} /><i /></label><label className="setting-switch-row"><div><strong>Sugerencias rápidas</strong><small>Muestra preguntas relacionadas debajo de la conversación.</small></div><input type="checkbox" checked={preferences.assistantSuggestions} disabled={!preferences.assistantEnabled} onChange={event => updatePreference('assistantSuggestions', event.target.checked)} /><i /></label><label className="setting-switch-row"><div><strong>Recomendación al abrir</strong><small>Analiza tu trabajo y propone automáticamente un proyecto.</small></div><input type="checkbox" checked={preferences.proactiveRecommendations} disabled={!preferences.assistantEnabled} onChange={event => updatePreference('proactiveRecommendations', event.target.checked)} /><i /></label></div></section>
+      <section className="settings-card"><div className="settings-card-title"><span><Sparkles /></span><div><h2>Ayuda y recorrido</h2><p>Repasá las funciones principales de DevHub.</p></div></div><p className="settings-card-copy">Volvé a ver el tutorial inicial para recordar dónde está cada herramienta.</p><button className="button" type="button" onClick={restartOnboarding}><Sparkles size={17} /> Repetir tutorial</button></section>
       <form className="settings-card" onSubmit={saveProfile}><div className="settings-card-title"><span><UserRound /></span><div><h2>Perfil</h2><p>La información que identifica tu cuenta.</p></div></div><label>Nombre<input value={username} onChange={event => setUsername(event.target.value)} /></label><label>Email<input type="email" value={email} onChange={event => setEmail(event.target.value)} /></label>{profileMessage && <div className="form-message success">{profileMessage}</div>}<button className="button primary" disabled={savingProfile}><Save size={17} /> {savingProfile ? 'Guardando...' : 'Guardar cambios'}</button></form>
       <form className="settings-card" onSubmit={savePassword}><div className="settings-card-title"><span><KeyRound /></span><div><h2>Contraseña</h2><p>Usá una contraseña única de al menos 8 caracteres.</p></div></div><label>Nueva contraseña<input type="password" autoComplete="new-password" value={newPassword} onChange={event => setNewPassword(event.target.value)} /></label><label>Confirmar contraseña<input type="password" autoComplete="new-password" value={confirmation} onChange={event => setConfirmation(event.target.value)} /></label>{passwordMessage && <div className="form-message success">{passwordMessage}</div>}<button className="button primary" disabled={savingPassword}><KeyRound size={17} /> {savingPassword ? 'Actualizando...' : 'Actualizar contraseña'}</button></form>
       <section className="settings-card"><div className="settings-card-title"><span><ShieldCheck /></span><div><h2>Sesiones</h2><p>Protegé la cuenta y controlá dónde está abierta.</p></div></div><p className="settings-card-copy">Podés cerrar solamente este dispositivo o revocar todas las sesiones activas.</p><div className="settings-session-actions"><button className="button" type="button" onClick={closeCurrentSession}><LogOut size={17} /> Cerrar esta sesión</button><button className="button" type="button" onClick={closeAllSessions} disabled={closingSessions}><ShieldCheck size={17} /> {closingSessions ? 'Cerrando sesiones...' : 'Cerrar todas'}</button></div></section>

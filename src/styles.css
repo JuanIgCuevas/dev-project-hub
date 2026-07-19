@@ -468,3 +468,74 @@ input::placeholder,textarea::placeholder{color:color-mix(in srgb,var(--muted) 72
   .overview-stats .stat-icon,.projects-stats .stat-icon{width:32px;height:32px}
   .overview-stats p,.projects-stats p{font-size:9px}
 }
+
+/* First-use guided tour. */
+.onboarding-backdrop{position:fixed;z-index:100;inset:0;display:grid;place-items:center;padding:24px;background:#06100bd4;backdrop-filter:blur(12px);animation:onboarding-fade .2s ease-out}
+@keyframes onboarding-fade{from{opacity:0}}
+.onboarding-dialog{width:min(880px,100%);min-height:520px;display:grid;grid-template-columns:minmax(270px,.82fr) 1.25fr;overflow:hidden;position:relative;border:1px solid color-mix(in srgb,var(--line) 80%,transparent);border-radius:24px;background:var(--surface-raised);box-shadow:0 35px 100px #0008;animation:onboarding-rise .28s ease-out}
+@keyframes onboarding-rise{from{opacity:0;transform:translateY(14px) scale(.985)}}
+.onboarding-close{position:absolute;z-index:2;top:14px;right:14px;width:36px;height:36px;display:grid;place-items:center;border:1px solid var(--line);border-radius:10px;background:color-mix(in srgb,var(--surface-raised) 88%,transparent);color:var(--muted);cursor:pointer}
+.onboarding-close:hover{color:var(--ink);border-color:var(--green)}
+.onboarding-close svg{width:17px}
+.onboarding-visual{min-height:520px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden;padding:32px;color:#fff;background:linear-gradient(155deg,#0d3929,#136a4b)}
+.onboarding-visual.home{background:linear-gradient(155deg,#173956,#2e7290)}
+.onboarding-visual.projects{background:linear-gradient(155deg,#254633,#36916a)}
+.onboarding-visual.work{background:linear-gradient(155deg,#49376a,#755db0)}
+.onboarding-visual.focus{background:linear-gradient(155deg,#6b431b,#c17d2b)}
+.onboarding-visual.assistant{background:linear-gradient(155deg,#173f38,#2a8a75)}
+.onboarding-orbit{position:absolute;border:1px solid #ffffff24;border-radius:50%;pointer-events:none}
+.orbit-one{width:280px;height:280px;right:-115px;top:-80px}
+.orbit-two{width:210px;height:210px;left:-105px;bottom:-50px}
+.onboarding-icon{width:104px;height:104px;display:grid;place-items:center;position:relative;margin-bottom:26px;border:1px solid #ffffff33;border-radius:30px;background:#ffffff15;box-shadow:inset 0 1px #ffffff25,0 25px 50px #07150d35;backdrop-filter:blur(8px)}
+.onboarding-icon>svg{width:48px;height:48px;stroke-width:1.6}
+.onboarding-icon>span{position:absolute;right:-9px;bottom:-8px;width:40px;height:40px;display:grid;place-items:center;border:4px solid color-mix(in srgb,#1a6249 70%,transparent);border-radius:13px;background:#fff;color:#236b52}
+.onboarding-icon>span svg{width:18px}
+.onboarding-visual>strong{font:800 23px 'Manrope';letter-spacing:-.7px}
+.onboarding-visual>small{margin-top:5px;color:#ffffffb8;font-size:10px;font-weight:700;letter-spacing:.5px}
+.onboarding-content{display:flex;flex-direction:column;padding:42px 46px 36px}
+.onboarding-progress{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;margin:0 44px 34px 0}
+.onboarding-progress i{height:4px;border-radius:5px;background:var(--surface-soft);transition:.25s}
+.onboarding-progress i.active{background:var(--green)}
+.onboarding-content>.eyebrow{margin-bottom:10px}
+.onboarding-content h2{max-width:480px;margin:0 0 12px;font-size:28px;line-height:1.16;letter-spacing:-.8px}
+.onboarding-description{margin:0;color:var(--muted);font-size:13px;line-height:1.65}
+.onboarding-content ul{display:grid;gap:9px;margin:22px 0 28px;padding:0;list-style:none}
+.onboarding-content li{display:flex;align-items:flex-start;gap:9px;color:var(--ink);font-size:11px;font-weight:650;line-height:1.45}
+.onboarding-content li>span{width:19px;height:19px;display:grid;place-items:center;flex:0 0 auto;border-radius:6px;background:#20a77913;color:var(--green);font-size:10px;font-weight:900}
+.onboarding-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:auto}
+.onboarding-actions>div{display:flex;gap:8px}
+.onboarding-actions .button{min-height:42px;padding:10px 14px}
+.onboarding-actions .button svg{width:15px}
+.onboarding-skip{border:0;background:transparent;color:var(--muted);font-size:10px;font-weight:700;cursor:pointer}
+.onboarding-skip:hover{color:var(--ink)}
+
+@media(max-width:700px){
+  .onboarding-backdrop{align-items:end;padding:0}
+  .onboarding-dialog{width:100%;height:100dvh;min-height:0;display:flex;flex-direction:column;border:0;border-radius:0}
+  .onboarding-close{top:calc(12px + env(safe-area-inset-top));right:12px;background:#ffffff16;border-color:#ffffff26;color:#fff}
+  .onboarding-visual{min-height:0;height:31dvh;flex:0 0 auto;padding:calc(24px + env(safe-area-inset-top)) 20px 20px}
+  .onboarding-icon{width:72px;height:72px;margin-bottom:12px;border-radius:21px}
+  .onboarding-icon>svg{width:33px;height:33px}
+  .onboarding-icon>span{width:31px;height:31px;border-width:3px;border-radius:10px}
+  .onboarding-icon>span svg{width:14px}
+  .onboarding-visual>strong{font-size:18px}
+  .orbit-one{width:210px;height:210px}
+  .orbit-two{width:150px;height:150px}
+  .onboarding-content{min-height:0;flex:1;overflow:auto;padding:22px 18px calc(18px + env(safe-area-inset-bottom))}
+  .onboarding-progress{margin:0 0 22px}
+  .onboarding-content h2{font-size:23px}
+  .onboarding-description{font-size:12px;line-height:1.55}
+  .onboarding-content ul{gap:7px;margin:18px 0 22px}
+  .onboarding-content li{font-size:10px}
+  .onboarding-actions{position:sticky;bottom:0;margin:0 -4px;padding-top:12px;background:linear-gradient(transparent 0,var(--surface-raised) 18%)}
+  .onboarding-actions>div{flex:1;justify-content:flex-end}
+  .onboarding-actions .button{min-height:44px;padding:9px 12px}
+}
+@media(max-width:360px){
+  .onboarding-visual{height:28dvh}
+  .onboarding-content{padding-left:15px;padding-right:15px}
+  .onboarding-content h2{font-size:21px}
+  .onboarding-skip{font-size:0}
+  .onboarding-skip:after{content:'Omitir';font-size:10px}
+}
+@media(prefers-reduced-motion:reduce){.onboarding-backdrop,.onboarding-dialog{animation:none}}
