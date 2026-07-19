@@ -6,6 +6,7 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { z } from 'zod'
 import { useAuth } from './AuthProvider'
 import { usePreferences } from '../preferences/preferencesContext'
+import { isSupabaseConfigured } from '../../lib/supabase'
 
 const authSchema = z.object({
   email: z.email('Ingresá un email válido.'),
@@ -19,6 +20,7 @@ function getAuthError(error: unknown) {
   if (message.includes('Invalid login credentials')) return 'El email o la contraseña no son correctos.'
   if (message.includes('User already registered')) return 'Ya existe una cuenta con ese email.'
   if (message.includes('Email not confirmed')) return 'Confirmá tu email antes de iniciar sesión.'
+  if (message.includes('Failed to fetch') || message.includes('fetch failed')) return 'No pudimos conectarnos con Supabase. Revisá la configuración del despliegue.'
   return 'No pudimos completar la operación. Intentá nuevamente.'
 }
 
@@ -35,6 +37,10 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
 
   const onSubmit = async (values: AuthValues) => {
     setServerError(''); setNotice('')
+    if (!isSupabaseConfigured) {
+      setServerError('La conexión con Supabase no está configurada en este despliegue.')
+      return
+    }
     if (!isLogin && (!values.username || values.username.length < 2)) {
       setError('username', { message: 'Ingresá un nombre de al menos 2 caracteres.' })
       return
