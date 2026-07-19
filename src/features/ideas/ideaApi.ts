@@ -7,6 +7,11 @@ export interface IdeaInput {
   description: string
   technologies: string[]
   status: IdeaStatus
+  excitement: number
+  usefulness: number
+  difficulty: number
+  portfolio_value: number
+  estimated_hours: number
 }
 
 const ideaKeys = ['ideas'] as const
@@ -31,6 +36,11 @@ export function useCreateIdea() {
         p_description: input.description,
         p_technologies: input.technologies,
         p_status: input.status,
+        p_excitement: input.excitement,
+        p_usefulness: input.usefulness,
+        p_difficulty: input.difficulty,
+        p_portfolio_value: input.portfolio_value,
+        p_estimated_hours: input.estimated_hours,
       })
       if (error) throw error
       return data as Idea
@@ -49,6 +59,11 @@ export function useUpdateIdea() {
         p_description: input.description,
         p_technologies: input.technologies,
         p_status: input.status,
+        p_excitement: input.excitement,
+        p_usefulness: input.usefulness,
+        p_difficulty: input.difficulty,
+        p_portfolio_value: input.portfolio_value,
+        p_estimated_hours: input.estimated_hours,
       })
       if (error) throw error
       return data as Idea

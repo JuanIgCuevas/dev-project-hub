@@ -8,6 +8,9 @@ import { ForgotPasswordPage, ResetPasswordPage } from './features/auth/PasswordP
 import { ProjectForm } from './features/projects/ProjectForm'
 import { IdeasPage } from './features/ideas/IdeasPage'
 import { useDeleteProject, useProject, useProjects } from './features/projects/projectApi'
+import { FocusPanel } from './features/projects/FocusPanel'
+import { getProjectPulse } from './features/projects/projectHealth'
+import { ProjectIntelligencePanel } from './features/projects/ProjectIntelligencePanel'
 import { TaskForm } from './features/tasks/TaskForm'
 import { useDeleteTask, useMyTasks, useUpdateTaskStatus } from './features/tasks/taskApi'
 import type { TaskOverview } from './features/tasks/taskApi'
@@ -81,6 +84,7 @@ function Shell({ children }: { children: React.ReactNode }) {
 function Dashboard() {
   const { user } = useAuth()
   const { data: projects = [], isLoading, error } = useProjects()
+  const { data: dashboardTasks = [] } = useMyTasks()
   const [search, setSearch] = useState('')
   const username = user?.user_metadata.username || user?.email?.split('@')[0] || 'Developer'
   const today = new Intl.DateTimeFormat('es-AR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date()).toUpperCase()
@@ -93,6 +97,7 @@ function Dashboard() {
       <article><span className="stat-icon green"><Rocket /></span><div><strong>{projects.filter(project => project.status === 'in_progress').length}</strong><p>En progreso</p></div></article>
       <article><span className="stat-icon violet"><CheckCircle2 /></span><div><strong>{completedTasks}</strong><p>Tareas completadas</p></div></article>
     </section>
+    <FocusPanel projects={projects} tasks={dashboardTasks} />
     <section className="section-head"><div><h2>Tus proyectos</h2><p>Continúa donde lo dejaste.</p></div><label className="search"><Search size={17} /><input aria-label="Buscar proyectos" value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar proyecto..." /></label></section>
     {isLoading && <div className="content-state"><span className="mini-loader" /><p>Cargando proyectos...</p></div>}
     {error && <div className="content-state error-state"><p>No pudimos cargar tus proyectos.</p></div>}
@@ -101,8 +106,10 @@ function Dashboard() {
         const done = project.tasks.filter(task => task.status === 'done').length
         const total = project.tasks.length
         const status = projectStatus[project.status]
+        const pulse = getProjectPulse(project, dashboardTasks)
         return <Link to={`/projects/${project.id}`} className="project-card" key={project.id}>
         <div className="card-top"><span className={`project-symbol ${status.tone}`}><Code2 /></span><span className={`badge ${status.tone}`}><i />{status.label}</span></div>
+        <div className={`project-pulse ${pulse.state}`}><i /><span>{pulse.label}</span><strong>{pulse.score}</strong></div>
         <h3>{project.name}</h3><p>{project.description || 'Sin descripción todavía.'}</p>
         <div className="tech-list">{project.technologies.length ? project.technologies.map(item => <span key={item}>{item}</span>) : <span>Stack por definir</span>}</div>
         <div className="progress-label"><span>Progreso</span><strong>{done}/{total} tareas</strong></div>
@@ -165,6 +172,7 @@ function ProjectPage() {
       <div className="panel"><div className="panel-head"><div><h2>Tareas</h2><p>El próximo paso siempre visible.</p></div><button className="button small" onClick={() => openTaskForm()}><Plus size={16} /> Nueva tarea</button></div>
         <div className="task-list">{sortedTasks.length ? sortedTasks.map(task => <div className="task" key={task.id}><button aria-label={task.status === 'done' ? `Marcar ${task.title} como pendiente` : `Completar ${task.title}`} onClick={() => handleTaskStatus(task, task.status === 'done' ? 'todo' : 'done')} className={task.status === 'done' ? 'task-check checked' : 'task-check'}>{task.status === 'done' && '✓'}</button><div className="task-content"><strong className={task.status === 'done' ? 'completed-title' : ''}>{task.title}</strong><span>{task.description || (task.status === 'done' ? 'Completada' : task.status === 'in_progress' ? 'En progreso' : 'Pendiente')}</span>{task.due_date && <small><CalendarDays size={12} /> {new Intl.DateTimeFormat('es-AR').format(new Date(`${task.due_date}T12:00:00`))}</small>}</div><select className={`task-status status-${task.status}`} value={task.status} onChange={event => handleTaskStatus(task, event.target.value as TaskStatus)} aria-label={`Estado de ${task.title}`}><option value="todo">Pendiente</option><option value="in_progress">En progreso</option><option value="done">Completada</option></select><span className={`priority ${task.priority === 'high' ? 'alta' : task.priority === 'low' ? 'baja' : 'media'}`}>{task.priority === 'high' ? 'Alta' : task.priority === 'low' ? 'Baja' : 'Media'}</span><div className="task-actions"><button className="icon-button" aria-label={`Editar ${task.title}`} onClick={() => openTaskForm(task)}><Pencil /></button><button className="icon-button danger-icon" aria-label={`Eliminar ${task.title}`} onClick={() => handleDeleteTask(task)}><Trash2 /></button></div></div>) : <div className="empty-tasks"><ListTodo /><p>Todavía no hay tareas en este proyecto.</p><button className="button small" onClick={() => openTaskForm()}><Plus size={16} /> Crear primera tarea</button></div>}</div>
       </div>
+      <ProjectIntelligencePanel project={project} />
     </section><aside className="details">
       <div className="panel"><h3>Progreso</h3><div className="big-progress"><strong>{progress}%</strong><span>completado</span></div><div className="progress"><i style={{ width: `${progress}%` }} /></div><p>{done} de {total} tareas completadas</p></div>
       <div className="panel"><h3>Tecnologías</h3><div className="tech-list large">{project.technologies.length ? project.technologies.map(item => <span key={item}>{item}</span>) : <p>Stack por definir.</p>}</div></div>

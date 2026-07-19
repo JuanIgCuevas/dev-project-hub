@@ -7,6 +7,7 @@ import type { ProjectWithTasks } from '../projects/projectApi'
 import { useMyTasks } from '../tasks/taskApi'
 import type { TaskOverview } from '../tasks/taskApi'
 import { usePreferences } from '../preferences/preferencesContext'
+import { getProjectPulse } from '../projects/projectHealth'
 
 type AssistantMessage = {
   id: number
@@ -31,6 +32,8 @@ function getFollowUpSuggestions(question: string) {
   if (/prioridad|prioritari|urgente|importante/.test(query)) return ['¿Tengo tareas vencidas?', '¿Qué proyecto debería continuar?', '¿Cuántas tareas tengo pendientes?']
   if (/idea/.test(query)) return ['¿Qué proyecto debería continuar?', '¿Tengo proyectos pausados?', 'Dame un resumen general']
   if (/pausad/.test(query)) return ['¿Qué proyecto debería continuar?', '¿Tengo tareas vencidas?', '¿Qué ideas tengo pendientes?']
+  if (/pulse|salud|ritmo|abandon|rescate/.test(query)) return ['Tengo 30 minutos, ¿qué hago?', '¿Tengo tareas vencidas?', 'Mostrame las tareas prioritarias']
+  if (/30 min|media hora|60 min|una hora|1 hora|2 horas/.test(query)) return ['¿Cómo está el pulse de mis proyectos?', '¿Tengo tareas vencidas?', '¿Qué ideas tengo pendientes?']
   if (/proyecto|continuar|seguir|hoy|recomend/.test(query)) return ['¿Tengo tareas vencidas?', 'Mostrame las tareas prioritarias', '¿Qué ideas tengo pendientes?']
   if (/resumen|estado|como voy/.test(query)) return ['¿Qué proyecto debería continuar?', '¿Tengo tareas vencidas?', '¿Qué ideas tengo pendientes?']
   return suggestions
@@ -111,6 +114,18 @@ export function AssistantWidget() {
       const paused = projects.filter(project => project.status === 'paused')
       if (!paused.length) return { text: 'No tenés proyectos pausados.' }
       return { text: `Proyectos pausados:\n${formatList(paused.map(project => project.name))}`, link: '/dashboard', linkLabel: 'Ver proyectos' }
+    }
+    if (/pulse|salud|ritmo|abandon|rescate/.test(query)) {
+      const atRisk = projects.map(project => ({ project, pulse: getProjectPulse(project, tasks) })).filter(item => item.pulse.state === 'stale' || item.pulse.state === 'blocked' || item.pulse.state === 'slowing')
+      if (!atRisk.length) return { text: 'Todos tus proyectos mantienen un buen ritmo.' }
+      return { text: `Estos proyectos necesitan atención:\n${formatList(atRisk.slice(0, 5).map(item => `${item.project.name} — ${item.pulse.label} (${item.pulse.score}/100)`))}`, link: '/dashboard', linkLabel: 'Abrir Project Pulse' }
+    }
+    if (/30 min|media hora|60 min|una hora|1 hora|2 horas|120 min/.test(query)) {
+      const recommendation = getRecommendedProject(projects, tasks)
+      if (!recommendation) return { text: 'No encontré un proyecto activo para preparar una sesión.' }
+      const count = /30 min|media hora/.test(query) ? 1 : /2 horas|120 min/.test(query) ? 3 : 2
+      const selectedTasks = tasks.filter(task => task.project_id === recommendation.project.id && task.status !== 'done').slice(0, count)
+      return { text: `Para esta sesión, enfocáte en “${recommendation.project.name}”${selectedTasks.length ? `:\n${formatList(selectedTasks.map(task => task.title))}` : '. Definí una tarea pequeña que deje un resultado visible.'}`, link: `/projects/${recommendation.project.id}`, linkLabel: 'Iniciar sesión Focus' }
     }
     if (/completad|terminad/.test(query) && /tarea/.test(query)) {
       const completed = tasks.filter(task => task.status === 'done').length

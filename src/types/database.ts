@@ -36,6 +36,29 @@ export interface Idea {
   technologies: string[]
   status: IdeaStatus
   converted_project_id: string | null
+  excitement: number
+  usefulness: number
+  difficulty: number
+  portfolio_value: number
+  estimated_hours: number
   created_at: string
   updated_at: string
+}
+
+export interface ProjectEvent {
+  id: string
+  project_id: string
+  event_type: 'project_created' | 'status_changed' | 'task_created' | 'task_completed' | 'note'
+  title: string
+  metadata: Record<string, unknown>
+  created_at: string
+}
+
+export interface ProjectDecision {
+  id: string
+  project_id: string
+  title: string
+  context: string | null
+  decision: string
+  created_at: string
 }
