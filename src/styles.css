@@ -425,6 +425,17 @@ input::placeholder,textarea::placeholder{color:color-mix(in srgb,var(--muted) 72
 .projects-page-grid{margin-left:auto;margin-right:auto}
 .settings-session-actions{display:flex;flex-wrap:wrap;gap:8px}
 .settings-session-actions .button{flex:1;min-width:145px;padding-left:10px;padding-right:10px}
+.settings-section-heading{display:flex;align-items:center;gap:13px;margin:10px 0 -4px;padding-top:15px;border-top:1px solid var(--line)}
+.settings-section-heading:first-child{margin-top:0;padding-top:0;border-top:0}
+.settings-section-heading>span{width:38px;height:38px;display:grid;place-items:center;flex:0 0 auto;border-radius:11px;background:#20a77911;color:var(--green)}
+.settings-section-heading>span svg{width:17px}
+.settings-section-heading .eyebrow{margin:0 0 3px;font-size:8px}
+.settings-section-heading h2{margin:0 0 2px;font-size:15px}
+.settings-section-heading small{color:var(--muted);font-size:9px}
+.danger-zone{border-color:#b85d5245;background:linear-gradient(145deg,#b85d5209,var(--surface))}
+.danger-zone .settings-card-title{border-color:#b85d5228}
+.danger-zone .settings-card-title>span{background:#b85d5215;color:#b85d52}
+.danger-zone .button.danger{width:max-content}
 .mobile-scroll-hint{display:none}
 @media(max-width:900px){
   .projects-page{padding:40px 30px}
@@ -440,6 +451,9 @@ input::placeholder,textarea::placeholder{color:color-mix(in srgb,var(--muted) 72
   .projects-stats::-webkit-scrollbar{display:none}
   .projects-stats article{scroll-snap-align:start}
   .projects-section-head,.projects-page-grid{margin-left:0;margin-right:0}
+  .settings-section-heading{margin-top:7px;padding-top:14px}
+  .settings-section-heading small{font-size:8px}
+  .danger-zone .button.danger{width:100%;min-height:44px}
 
   .mobile-scroll-hint{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 16px 9px;color:var(--muted);font-size:9px}
   .mobile-scroll-hint strong{color:var(--ink);font-size:11px}
@@ -539,3 +553,35 @@ input::placeholder,textarea::placeholder{color:color-mix(in srgb,var(--muted) 72
   .onboarding-skip:after{content:'Omitir';font-size:10px}
 }
 @media(prefers-reduced-motion:reduce){.onboarding-backdrop,.onboarding-dialog{animation:none}}
+
+/* Safer and clearer password entry. */
+.register-mode .auth-form{max-width:410px;padding:30px 0}
+.password-field{position:relative;display:block}
+.auth-form .password-field input{width:100%;padding-right:48px}
+.password-field>button{position:absolute;top:50%;right:7px;width:34px;height:34px;display:grid;place-items:center;border:0;border-radius:8px;background:transparent;color:var(--muted);cursor:pointer;transform:translateY(-50%)}
+.password-field>button:hover,.password-field>button[aria-pressed='true']{background:var(--surface-soft);color:var(--green)}
+.password-field>button svg{width:17px}
+.caps-lock-warning{display:flex;align-items:center;gap:5px;margin-top:-4px;color:#a86f19;font-size:9px;font-weight:700}
+.caps-lock-warning svg{width:12px}
+.auth-form label small.field-success{color:var(--green)}
+.auth-form .password-field.field-invalid input{border-color:#b85d52;box-shadow:0 0 0 3px #b85d5212}
+.password-strength{--strength-color:#a75248;margin:-7px 0 17px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface-soft)}
+.password-strength.strength-2{--strength-color:#c1842a}.password-strength.strength-3{--strength-color:#4b7fa0}.password-strength.strength-4{--strength-color:var(--green)}
+.password-strength>div:first-child{display:flex;align-items:center;justify-content:space-between;color:var(--muted);font-size:9px;font-weight:700}
+.password-strength>div:first-child strong{color:var(--strength-color);font-size:9px}
+.strength-bars{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:7px 0 10px}
+.strength-bars i{height:4px;border-radius:5px;background:var(--line)}
+.strength-1 .strength-bars i:nth-child(-n+1),.strength-2 .strength-bars i:nth-child(-n+2),.strength-3 .strength-bars i:nth-child(-n+3),.strength-4 .strength-bars i{background:var(--strength-color)}
+.password-strength ul{display:flex;flex-wrap:wrap;gap:6px 10px;margin:0;padding:0;list-style:none}
+.password-strength li{display:flex;align-items:center;gap:4px;color:var(--muted);font-size:8px;font-weight:650}
+.password-strength li.valid{color:var(--green)}
+.password-strength li svg{width:10px;height:10px}
+.password-strength li em{font-style:normal;color:var(--muted);font-size:7px;font-weight:500}
+@media(max-width:620px){
+  body{min-width:0}
+  .register-mode .auth-panel{align-items:start;padding-top:18px;padding-bottom:28px}
+  .register-mode .auth-form{max-width:none;padding:0}
+  .password-field>button{width:38px;height:38px;right:4px}
+  .auth-form .password-field input{min-height:44px;padding-right:47px}
+  .password-strength{padding:11px}
+}
