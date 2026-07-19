@@ -1,2 +1,29 @@
-# dev-project-hub
+# Dev Project Hub
+
 Plataforma para que desarrolladores independientes organicen, gestionen y hagan seguimiento de sus proyectos personales.
+
+## Primer MVP
+
+- Autenticacion con email y contrasena.
+- Dashboard personal de proyectos.
+- Creacion y seguimiento de proyectos.
+- Tareas con estado y prioridad.
+- Acceso seguro a los datos mediante Supabase RLS.
+
+## Puesta en marcha
+
+1. Copia `.env.example` como `.env`.
+2. Completa la URL y la clave publica de tu proyecto de Supabase.
+3. Ejecuta el contenido de `supabase/migrations/001_initial_schema.sql` en Supabase.
+4. Instala las dependencias con `npm install`.
+5. Inicia la aplicacion con `npm run dev`.
+
+## Acceso a datos
+
+El frontend no accede directamente a las tablas de PostgreSQL. Todas las
+lecturas y escrituras de datos de negocio deben implementarse como funciones
+SQL seguras y consumirse mediante `supabase.rpc(...)`.
+
+Las operaciones de identidad, sesiones, email y contrasena utilizan la API
+oficial de Supabase Auth. ESLint bloquea nuevas llamadas `supabase.from(...)`
+dentro del codigo fuente.
