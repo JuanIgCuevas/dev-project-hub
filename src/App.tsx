@@ -65,6 +65,7 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
       <Link className={`nav-link ${location.pathname === '/ideas' ? 'active' : ''}`} to="/ideas" title="Ideas"><Lightbulb size={18} /><span className="nav-label">Ideas</span></Link>
       <Link className={`nav-link mobile-settings-link ${location.pathname === '/settings' ? 'active' : ''}`} to="/settings" aria-label="Configuración"><SettingsIcon size={18} /><span className="nav-label">Configuración</span></Link>
       <button className="nav-link mobile-theme-toggle" type="button" onClick={toggleTheme}>{theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}<span className="nav-label">{theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}</span></button>
+      <button className="nav-link mobile-logout" type="button" onClick={handleSignOut}><LogOut size={18} /><span className="nav-label">Salir</span></button>
     </nav>
     <div className="sidebar-bottom">
       <div className="account-row"><div className="user"><div className="avatar">{initials}</div><div><strong>{username}</strong></div></div><button className="account-settings quick-theme-toggle" type="button" onClick={toggleTheme} aria-label={theme === 'dark' ? 'Usar modo claro' : 'Usar modo oscuro'} title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}>{theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}</button><Link className={`account-settings ${location.pathname === '/settings' ? 'active' : ''}`} to="/settings" aria-label="Configuración" title="Configuración"><SettingsIcon size={18} /></Link></div>

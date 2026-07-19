@@ -244,3 +244,125 @@ input::placeholder,textarea::placeholder{color:color-mix(in srgb,var(--muted) 72
 .focus-session-dock.minimized>a{color:var(--ink)}.focus-session-dock.minimized>a:hover{color:var(--green)}.focus-session-dock.minimized>a strong{font:800 17px 'Manrope';letter-spacing:-.35px}
 .focus-dock-actions>a{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;height:32px;padding:0 7px;border:1px solid var(--line);border-radius:8px;background:var(--surface-soft);color:var(--ink);font-size:9px;font-weight:800;white-space:nowrap;cursor:pointer}.focus-dock-actions>a:hover{border-color:var(--green);color:var(--green)}
 .momentum-section{align-items:start}.focus-card.collapsed{min-height:0;padding:16px 20px}.focus-card.collapsed:before{width:100px;height:100px;right:-38px;top:-65px}.focus-card.collapsed .focus-card-head{align-items:center}.focus-card.collapsed .eyebrow{margin-bottom:4px}.focus-card.collapsed h2{font-size:14px;margin:0}.focus-card.collapsed .focus-card-head small{display:block;margin-top:2px;color:var(--muted);font-size:8px}.focus-head-actions{display:flex;align-items:center;gap:7px;position:relative;z-index:1}.focus-collapse-button{height:32px;display:flex;align-items:center;gap:5px;padding:0 9px;border:1px solid var(--line);border-radius:9px;background:var(--surface-soft);color:var(--muted);font-size:8px;font-weight:800;cursor:pointer}.focus-collapse-button:hover{border-color:var(--green);color:var(--green);background:#20a7790d}.focus-collapse-button svg{width:14px}.focus-card:not(.collapsed) .focus-card-head>div:first-child{padding-top:2px}@media(max-width:620px){.focus-head-actions{gap:4px}.focus-collapse-button span{display:none}.focus-collapse-button{width:32px;padding:0;justify-content:center}.focus-card.collapsed{padding:14px 16px}.focus-card.collapsed h2{max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.focus-running-badge{font-size:0;padding:7px}.focus-running-badge i{margin:0}}
+
+/* Mobile-first application experience. */
+.mobile-logout{display:none}
+@media(max-width:620px){
+  html,body,#root{min-height:100%;overflow-x:hidden}
+  body{padding-bottom:0}
+  body:has(.app-shell){padding-bottom:calc(72px + env(safe-area-inset-bottom))}
+  .app-shell,.sidebar-collapsed{display:block;min-height:100dvh}
+  .main{min-height:calc(100dvh - 72px);padding-bottom:18px}
+  .sidebar,.sidebar-collapsed .sidebar{position:fixed;z-index:60;inset:auto 0 0;height:calc(64px + env(safe-area-inset-bottom));display:block;padding:6px 8px env(safe-area-inset-bottom);border:0;border-top:1px solid var(--line);background:color-mix(in srgb,var(--surface-raised) 94%,transparent);box-shadow:0 -12px 35px #07150d18;backdrop-filter:blur(20px);overflow:visible}
+  .sidebar-header,.sidebar-collapsed .sidebar-header,.sidebar-bottom{display:none}
+  .sidebar nav,.sidebar-collapsed .sidebar nav{width:100%;height:58px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px;margin:0}
+  .sidebar .nav-link,.sidebar-collapsed .nav-link{min-width:0;min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:5px 2px;border:0;border-radius:11px;font-size:9px;line-height:1;color:var(--muted);transform:none}
+  .sidebar .nav-link svg{width:20px;height:20px;flex:0 0 auto}
+  .sidebar .nav-link.active{background:#20a77913;color:var(--green)}
+  .sidebar .nav-label,.sidebar-collapsed .nav-label{display:block;max-width:100%;opacity:1;overflow:hidden;text-overflow:ellipsis;transform:none;font-size:9px;white-space:nowrap}
+  .mobile-settings-link,.mobile-logout{display:flex!important}
+  .mobile-theme-toggle{display:none!important}
+  .topbar,.page-wrap,.form-page,.settings-page,.ideas-page,.tasks-page{padding:24px 16px}
+  .topbar{gap:16px;padding-bottom:22px}
+  .topbar h1,.tasks-heading h1,.ideas-heading h1,.settings-heading h1{font-size:25px;line-height:1.15;letter-spacing:-.7px}
+  .topbar>.button,.ideas-heading>.button{width:100%;min-height:44px}
+  .stats{display:grid;grid-auto-flow:column;grid-template-columns:none;grid-auto-columns:minmax(155px,72vw);gap:10px;margin:0;padding:0 16px 22px;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none}
+  .stats::-webkit-scrollbar{display:none}
+  .stats article{min-height:76px;padding:14px;scroll-snap-align:start}
+  .stats strong{font-size:21px}
+  .focus-daily-goal,.momentum-section,.section-head,.project-grid{margin-left:16px;margin-right:16px}
+  .focus-daily-goal{padding:11px 12px}
+  .momentum-section{margin-bottom:24px}
+  .focus-card,.rescue-card{padding:16px;border-radius:15px}
+  .focus-controls,.focus-controls:has(label:nth-child(3)){grid-template-columns:1fr}
+  .focus-controls label:first-child{grid-column:auto}
+  .focus-controls select,.focus-controls input{height:44px;font-size:12px}
+  .focus-project{gap:11px;margin:17px 0 15px}
+  .pulse-orbit{width:54px;height:54px;border-width:4px}
+  .focus-project h3{font-size:16px}
+  .focus-start-actions{gap:9px}
+  .focus-start-actions .button{min-height:44px;width:100%}
+  .project-grid{gap:13px}
+  .project-card,.new-card{min-height:250px;padding:18px;border-radius:15px}
+  .project-title{margin-bottom:24px}
+  .project-title .title-row{align-items:flex-start}
+  .project-title .title-row h1{font-size:24px;overflow-wrap:anywhere}
+  .project-actions{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .project-actions .button{min-width:0;min-height:42px;padding:9px 8px;font-size:11px;text-align:center}
+  .project-layout{gap:14px}
+  .panel{padding:17px;border-radius:14px}
+  .panel-head{align-items:flex-start;gap:10px}
+  .project-task-header-actions{display:grid;grid-template-columns:1fr 1fr;width:100%;margin-top:12px}
+  .project-layout>section>.panel>.panel-head{display:block}
+  .project-task-header-actions .button{min-height:40px;padding:8px}
+  .task-list{margin-top:12px}
+  .task{display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:start;gap:8px 10px;padding:14px 0}
+  .task-check{grid-column:1;grid-row:1;width:22px;height:22px}
+  .task-content{grid-column:2/4;grid-row:1}
+  .task .task-status{grid-column:2;grid-row:2;width:100%;min-height:36px;padding:6px 25px 6px 10px}
+  .task>.priority{grid-column:2;grid-row:3;width:max-content}
+  .task>.task-actions{grid-column:3;grid-row:2/4;align-self:start}
+  .details{gap:12px}
+  .project-intelligence{margin-top:14px}
+  .portfolio-panel{padding:17px}
+  .ship-head{align-items:flex-start;gap:10px}
+  .ship-head>strong{font-size:19px}
+  .focus-history-panel{margin-top:14px}
+  .focus-history-list header{gap:6px}
+  .focus-history-card-actions{flex:0 0 auto}
+  .focus-history-notes{grid-template-columns:1fr}
+  .tasks-heading{gap:14px;margin-bottom:22px}
+  .tasks-header-actions{display:grid;grid-template-columns:1fr;width:100%}
+  .tasks-header-actions>.button{width:100%;min-height:42px}
+  .view-toggle{width:100%;min-height:44px}
+  .task-stats{display:grid;grid-auto-columns:minmax(145px,65vw);margin:0 -16px 18px;padding:0 16px}
+  .task-filters,.task-filters.kanban-filters{gap:8px;padding:10px;border-radius:12px}
+  .task-filters .search,.task-filters>select{min-height:44px}
+  .project-task-heading{padding:14px 0}
+  .global-task{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:8px 10px;padding:14px 0}
+  .global-task>.task-check{grid-column:1;grid-row:1}
+  .global-task-main{grid-column:2/4;grid-row:1;min-width:0}
+  .global-task .task-status{grid-column:2;grid-row:2;width:100%;min-height:36px;margin:0}
+  .global-task>.priority{grid-column:2;grid-row:3;width:max-content}
+  .global-task>.task-actions{grid-column:3;grid-row:2/4;margin:0}
+  .kanban-board{margin-right:-16px;padding-right:16px;grid-template-columns:repeat(3,minmax(82vw,310px));overscroll-behavior-x:contain}
+  .kanban-column{min-height:360px}
+  .ideas-page{padding-bottom:22px}
+  .idea-summary{display:grid;grid-auto-flow:column;grid-template-columns:none;grid-auto-columns:minmax(150px,68vw);gap:9px;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none}
+  .idea-summary article{scroll-snap-align:start}
+  .idea-card{min-height:245px;padding:17px}
+  .settings-heading{margin-bottom:22px}
+  .settings-grid{gap:13px}
+  .settings-card{padding:18px;border-radius:14px}
+  .settings-card-title{align-items:flex-start;padding-bottom:15px;margin-bottom:17px}
+  .setting-switch-row{gap:12px;padding:13px 0}
+  .setting-switch-row>div{min-width:0}
+  .setting-switch-row small{line-height:1.4}
+  .theme-options>button{grid-template-columns:82px 1fr;gap:12px;padding:9px}
+  .theme-preview{height:54px}
+  .form-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .form-actions .button{min-height:42px;padding:9px}
+  .modal-backdrop{z-index:70;align-items:end;padding:0;background:#06100bc7}
+  .task-modal{width:100%;max-height:92dvh;padding:20px 16px calc(20px + env(safe-area-inset-bottom));border-radius:20px 20px 0 0}
+  .modal-head{margin-bottom:19px}
+  .task-modal .form-row{grid-template-columns:1fr;gap:0}
+  .assistant-launcher{right:16px;bottom:calc(80px + env(safe-area-inset-bottom));width:50px;height:50px;border-radius:15px}
+  .assistant-panel{inset:12px 12px calc(138px + env(safe-area-inset-bottom));width:auto;height:auto;max-height:none;border-radius:18px}
+  .assistant-message{max-width:92%;font-size:12px}
+  .assistant-input input{height:44px;font-size:12px}
+  .assistant-input button{width:44px;height:44px}
+  .focus-session-dock.position-bottom-left{bottom:calc(76px + env(safe-area-inset-bottom))}
+  .focus-session-dock.focus-reflection{top:auto;right:0;bottom:calc(64px + env(safe-area-inset-bottom));left:0;width:100%;max-height:78dvh;border-radius:20px 20px 0 0;padding:18px 16px}
+  .simple-auth{min-height:100dvh;padding:16px}
+  .simple-auth-card{padding:22px 18px}
+  .auth-page{min-height:100dvh}
+  .auth-panel{min-height:100dvh;align-items:center;padding:22px 20px}
+  .auth-form{max-width:none}
+}
+@media(max-width:360px){
+  .topbar,.page-wrap,.form-page,.settings-page,.ideas-page,.tasks-page{padding-left:13px;padding-right:13px}
+  .focus-daily-goal,.momentum-section,.section-head,.project-grid{margin-left:13px;margin-right:13px}
+  .project-actions{grid-template-columns:1fr}
+  .focus-head-actions .focus-running-badge{display:none}
+  .sidebar .nav-label,.sidebar-collapsed .nav-label{font-size:8px}
+}
