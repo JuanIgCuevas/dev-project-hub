@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react'
 
-export type DefaultPage = '/dashboard' | '/tasks' | '/ideas'
+export type DefaultPage = '/dashboard' | '/projects' | '/tasks' | '/ideas'
 export type DefaultTaskView = 'list' | 'kanban'
 export type FocusTimerPosition = 'top-right' | 'top-left' | 'bottom-left'
 

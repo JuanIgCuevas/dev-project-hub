@@ -1,4 +1,4 @@
-import { ArrowRight, Bot, CalendarDays, CheckCircle2, Code2, Columns3, Database, Download, ExternalLink, FolderKanban, Github, GripVertical, KeyRound, Laptop, LayoutDashboard, Lightbulb, ListTodo, LogOut, Moon, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Rocket, Rows3, Save, Search, Settings as SettingsIcon, ShieldCheck, SlidersHorizontal, Sparkles, Sun, Timer, Trash2, UserRound } from 'lucide-react'
+import { Activity, ArrowRight, Bot, CalendarDays, CheckCircle2, Clock3, Code2, Columns3, Database, Download, ExternalLink, FolderKanban, Github, GripVertical, KeyRound, Laptop, LayoutDashboard, Lightbulb, ListTodo, LogOut, Moon, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Rocket, Rows3, Save, Search, Settings as SettingsIcon, ShieldCheck, SlidersHorizontal, Sparkles, Sun, Timer, Trash2, UserRound } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { AuthPage } from './features/auth/AuthPage'
@@ -14,8 +14,10 @@ import { ProjectIntelligencePanel } from './features/projects/ProjectIntelligenc
 import { FocusSessionDock } from './features/focus/FocusSessionDock'
 import { FocusHistoryPanel } from './features/focus/FocusHistoryPanel'
 import { FocusDailyGoal } from './features/focus/FocusDailyGoal'
+import { useMyFocusSessions } from './features/focus/focusApi'
 import { TaskForm } from './features/tasks/TaskForm'
 import { useDeleteTask, useMyTasks, useUpdateTaskStatus } from './features/tasks/taskApi'
+import { useIdeas } from './features/ideas/ideaApi'
 import type { TaskOverview } from './features/tasks/taskApi'
 import { supabase } from './lib/supabase'
 import { useTheme } from './features/theme/themeContext'
@@ -51,7 +53,7 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const projectsActive = location.pathname === '/dashboard' || location.pathname.startsWith('/projects')
+  const projectsActive = location.pathname === '/projects' || location.pathname.startsWith('/projects/')
   const username = user?.user_metadata.username || user?.email?.split('@')[0] || 'Developer'
   const initials = username.slice(0, 2).toUpperCase()
   const { theme, toggleTheme } = useTheme()
@@ -60,7 +62,8 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
   return <aside className="sidebar">
     <div className="sidebar-header"><Brand /><button className="sidebar-toggle" type="button" onClick={onToggle} aria-label={collapsed ? 'Abrir barra lateral' : 'Cerrar barra lateral'} title={collapsed ? 'Abrir barra lateral' : 'Cerrar barra lateral'}>{collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}</button></div>
     <nav>
-      <Link className={`nav-link ${projectsActive ? 'active' : ''}`} to="/dashboard" title="Proyectos"><LayoutDashboard size={18} /><span className="nav-label">Proyectos</span></Link>
+      <Link className={`nav-link ${location.pathname === '/dashboard' ? 'active' : ''}`} to="/dashboard" title="Inicio"><LayoutDashboard size={18} /><span className="nav-label">Inicio</span></Link>
+      <Link className={`nav-link ${projectsActive ? 'active' : ''}`} to="/projects" title="Proyectos"><FolderKanban size={18} /><span className="nav-label">Proyectos</span></Link>
       <Link className={`nav-link ${location.pathname === '/tasks' ? 'active' : ''}`} to="/tasks" title="Mis tareas"><ListTodo size={18} /><span className="nav-label">Mis tareas</span></Link>
       <Link className={`nav-link ${location.pathname === '/ideas' ? 'active' : ''}`} to="/ideas" title="Ideas"><Lightbulb size={18} /><span className="nav-label">Ideas</span></Link>
       <Link className={`nav-link mobile-settings-link ${location.pathname === '/settings' ? 'active' : ''}`} to="/settings" aria-label="Configuración"><SettingsIcon size={18} /><span className="nav-label">Configuración</span></Link>
@@ -87,44 +90,97 @@ function Shell({ children }: { children: React.ReactNode }) {
 
 function Dashboard() {
   const { user } = useAuth()
-  const { data: projects = [], isLoading, error } = useProjects()
+  const { data: projects = [] } = useProjects()
   const { data: dashboardTasks = [] } = useMyTasks()
-  const [search, setSearch] = useState('')
+  const { data: ideas = [] } = useIdeas()
+  const { data: focusSessions = [] } = useMyFocusSessions()
   const username = user?.user_metadata.username || user?.email?.split('@')[0] || 'Developer'
   const today = new Intl.DateTimeFormat('es-AR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date()).toUpperCase()
-  const visibleProjects = projects.filter(project => project.name.toLowerCase().includes(search.trim().toLowerCase()))
-  const completedTasks = projects.reduce((total, project) => total + project.tasks.filter(task => task.status === 'done').length, 0)
+  const pendingTasks = dashboardTasks.filter(task => task.status !== 'done')
+  const openIdeas = ideas.filter(idea => idea.status !== 'archived' && !idea.converted_project_id)
+  const todayKey = new Date().toDateString()
+  const weekStart = Date.now() - 7 * 86_400_000
+  const todayFocusMinutes = Math.round(focusSessions.filter(session => new Date(session.completed_at).toDateString() === todayKey).reduce((total, session) => total + session.focused_seconds, 0) / 60)
+  const weekFocusMinutes = Math.round(focusSessions.filter(session => new Date(session.completed_at).getTime() >= weekStart).reduce((total, session) => total + session.focused_seconds, 0) / 60)
+  const nextTask = [...pendingTasks].sort((a, b) => {
+    const aOverdue = a.due_date && new Date(`${a.due_date}T23:59:59`).getTime() < Date.now() ? 0 : 1
+    const bOverdue = b.due_date && new Date(`${b.due_date}T23:59:59`).getTime() < Date.now() ? 0 : 1
+    if (aOverdue !== bOverdue) return aOverdue - bOverdue
+    const priority = { high: 0, medium: 1, low: 2 }
+    return priority[a.priority] - priority[b.priority]
+  })[0]
+  const attentionProject = projects
+    .filter(project => project.status !== 'completed')
+    .map(project => ({ project, pulse: getProjectPulse(project, dashboardTasks) }))
+    .sort((a, b) => a.pulse.score - b.pulse.score)[0]
+  const recentSession = focusSessions[0]
   return <Shell>
-    <header className="topbar"><div><p className="eyebrow">{today}</p><h1>Buenos días, {username} <span>👋</span></h1><p>Todo lo que estás construyendo, en un solo lugar.</p></div><Link className="button primary" to="/projects/new"><Plus size={18} /> Nuevo proyecto</Link></header>
-    <section className="stats">
-      <article><span className="stat-icon blue"><FolderKanban /></span><div><strong>{projects.length}</strong><p>Proyectos totales</p></div></article>
-      <article><span className="stat-icon green"><Rocket /></span><div><strong>{projects.filter(project => project.status === 'in_progress').length}</strong><p>En progreso</p></div></article>
-      <article><span className="stat-icon violet"><CheckCircle2 /></span><div><strong>{completedTasks}</strong><p>Tareas completadas</p></div></article>
+    <header className="topbar dashboard-topbar"><div><p className="eyebrow">{today}</p><h1>Buenos días, {username} <span>👋</span></h1><p>Este es el pulso general de todo lo que estás construyendo.</p></div><Link className="button" to="/projects">Ver proyectos <ArrowRight size={17} /></Link></header>
+    <section className="dashboard-summary" aria-label="Resumen general">
+      <article className="summary-next-step">
+        <div className="summary-card-head"><span><Rocket /></span><p className="eyebrow">TU PRÓXIMO PASO</p></div>
+        {nextTask ? <><h2>{nextTask.title}</h2><p>La prioridad más conveniente para continuar ahora está en <strong>{nextTask.project_name}</strong>.</p><div className="summary-meta"><span className={`priority ${nextTask.priority === 'high' ? 'alta' : nextTask.priority === 'low' ? 'baja' : 'media'}`}>{nextTask.priority === 'high' ? 'Alta prioridad' : nextTask.priority === 'low' ? 'Prioridad baja' : 'Prioridad media'}</span>{nextTask.due_date && <span><CalendarDays /> {new Intl.DateTimeFormat('es-AR').format(new Date(`${nextTask.due_date}T12:00:00`))}</span>}</div><Link to={`/projects/${nextTask.project_id}`}>Abrir proyecto <ArrowRight /></Link></> : <><h2>Todo al día</h2><p>No tenés tareas pendientes. Podés capturar una idea o preparar el siguiente proyecto.</p><Link to="/ideas">Abrir ideas <ArrowRight /></Link></>}
+      </article>
+      <article className="summary-focus-card">
+        <div className="summary-card-head"><span><Timer /></span><p className="eyebrow">FOCUS</p></div>
+        <div className="summary-focus-metrics"><div><strong>{todayFocusMinutes}</strong><span>min hoy</span></div><div><strong>{weekFocusMinutes}</strong><span>min esta semana</span></div></div>
+        <p>{recentSession ? <>Última sesión en <strong>{recentSession.project_name}</strong>{recentSession.outcome ? `: ${recentSession.outcome}` : '.'}</> : 'Todavía no guardaste sesiones. Tu historial empezará con el próximo Focus.'}</p>
+        {recentSession && <Link to={`/projects/${recentSession.project_id}`}>Ver último avance <ArrowRight /></Link>}
+      </article>
+      <article className="summary-pulse-card">
+        <div className="summary-card-head"><span><Activity /></span><p className="eyebrow">PROJECT PULSE</p></div>
+        {attentionProject ? <><div className="summary-pulse-score"><strong>{attentionProject.pulse.score}</strong><span><b>{attentionProject.project.name}</b>{attentionProject.pulse.label}</span></div><p>Es el proyecto que más atención necesita en este momento.</p><Link to={`/projects/${attentionProject.project.id}`}>Revisar proyecto <ArrowRight /></Link></> : <><h2>Espacio nuevo</h2><p>Creá tu primer proyecto para empezar a medir su progreso.</p><Link to="/projects/new">Crear proyecto <ArrowRight /></Link></>}
+      </article>
+    </section>
+    <section className="stats overview-stats">
+      <article><span className="stat-icon blue"><FolderKanban /></span><div><strong>{projects.filter(project => project.status === 'in_progress').length}</strong><p>Proyectos activos</p></div></article>
+      <article><span className="stat-icon green"><ListTodo /></span><div><strong>{pendingTasks.length}</strong><p>Tareas pendientes</p></div></article>
+      <article><span className="stat-icon violet"><Lightbulb /></span><div><strong>{openIdeas.length}</strong><p>Ideas por evaluar</p></div></article>
+      <article><span className="stat-icon amber"><Clock3 /></span><div><strong>{todayFocusMinutes}</strong><p>Minutos Focus hoy</p></div></article>
     </section>
     <FocusDailyGoal />
     <FocusPanel projects={projects} tasks={dashboardTasks} />
-    <section className="section-head"><div><h2>Tus proyectos</h2><p>Continúa donde lo dejaste.</p></div><label className="search"><Search size={17} /><input aria-label="Buscar proyectos" value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar proyecto..." /></label></section>
+  </Shell>
+}
+
+function ProjectsPage() {
+  const { data: projects = [], isLoading, error } = useProjects()
+  const { data: tasks = [] } = useMyTasks()
+  const [search, setSearch] = useState('')
+  const visibleProjects = projects.filter(project => project.name.toLowerCase().includes(search.trim().toLowerCase()))
+  const completedTasks = projects.reduce((total, project) => total + project.tasks.filter(task => task.status === 'done').length, 0)
+
+  return <Shell><div className="projects-page">
+    <header className="projects-heading"><div><p className="eyebrow">TU ESPACIO DE TRABAJO</p><h1>Proyectos</h1><p>Creá, buscá y administrá todo lo que estás construyendo.</p></div><Link className="button primary" to="/projects/new"><Plus size={18} /> Nuevo proyecto</Link></header>
+    <section className="stats projects-stats">
+      <article><span className="stat-icon blue"><FolderKanban /></span><div><strong>{projects.length}</strong><p>Proyectos totales</p></div></article>
+      <article><span className="stat-icon green"><Rocket /></span><div><strong>{projects.filter(project => project.status === 'in_progress').length}</strong><p>En progreso</p></div></article>
+      <article><span className="stat-icon amber"><Timer /></span><div><strong>{projects.filter(project => project.status === 'paused').length}</strong><p>Pausados</p></div></article>
+      <article><span className="stat-icon violet"><CheckCircle2 /></span><div><strong>{completedTasks}</strong><p>Tareas completadas</p></div></article>
+    </section>
+    <section className="section-head projects-section-head"><div><h2>Todos tus proyectos</h2><p>{visibleProjects.length} {visibleProjects.length === 1 ? 'proyecto visible' : 'proyectos visibles'}.</p></div><label className="search"><Search size={17} /><input aria-label="Buscar proyectos" value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar proyecto..." /></label></section>
     {isLoading && <div className="content-state"><span className="mini-loader" /><p>Cargando proyectos...</p></div>}
     {error && <div className="content-state error-state"><p>No pudimos cargar tus proyectos.</p></div>}
-    <section className="project-grid">
+    <section className="project-grid projects-page-grid">
       {visibleProjects.map(project => {
         const done = project.tasks.filter(task => task.status === 'done').length
         const total = project.tasks.length
         const status = projectStatus[project.status]
-        const pulse = getProjectPulse(project, dashboardTasks)
+        const pulse = getProjectPulse(project, tasks)
         return <Link to={`/projects/${project.id}`} className="project-card" key={project.id}>
-        <div className="card-top"><span className={`project-symbol ${status.tone}`}><Code2 /></span><span className={`badge ${status.tone}`}><i />{status.label}</span></div>
-        <div className={`project-pulse ${pulse.state}`}><i /><span>{pulse.label}</span><strong>{pulse.score}</strong></div>
-        <h3>{project.name}</h3><p>{project.description || 'Sin descripción todavía.'}</p>
-        <div className="tech-list">{project.technologies.length ? project.technologies.map(item => <span key={item}>{item}</span>) : <span>Stack por definir</span>}</div>
-        <div className="progress-label"><span>Progreso</span><strong>{done}/{total} tareas</strong></div>
-        <div className="progress"><i style={{ width: `${total ? done / total * 100 : 0}%` }} /></div>
-        <div className="card-footer"><span>Actualizado {relativeDate(project.updated_at)}</span><ArrowRight size={18} /></div>
-      </Link>})}
+          <div className="card-top"><span className={`project-symbol ${status.tone}`}><Code2 /></span><span className={`badge ${status.tone}`}><i />{status.label}</span></div>
+          <div className={`project-pulse ${pulse.state}`}><i /><span>{pulse.label}</span><strong>{pulse.score}</strong></div>
+          <h3>{project.name}</h3><p>{project.description || 'Sin descripción todavía.'}</p>
+          <div className="tech-list">{project.technologies.length ? project.technologies.map(item => <span key={item}>{item}</span>) : <span>Stack por definir</span>}</div>
+          <div className="progress-label"><span>Progreso</span><strong>{done}/{total} tareas</strong></div>
+          <div className="progress"><i style={{ width: `${total ? done / total * 100 : 0}%` }} /></div>
+          <div className="card-footer"><span>Actualizado {relativeDate(project.updated_at)}</span><ArrowRight size={18} /></div>
+        </Link>
+      })}
       {!isLoading && !error && search && visibleProjects.length === 0 && <div className="empty-search"><p>No encontramos proyectos con “{search}”.</p></div>}
-      <Link to="/projects/new" className="new-card"><span><Plus /></span><strong>Crear nuevo proyecto</strong><p>Convierte esa idea en algo real.</p></Link>
+      <Link to="/projects/new" className="new-card"><span><Plus /></span><strong>Crear nuevo proyecto</strong><p>Convertí esa idea en algo real.</p></Link>
     </section>
-  </Shell>
+  </div></Shell>
 }
 
 function ProjectPage() {
@@ -139,7 +195,7 @@ function ProjectPage() {
   const [taskFormOpen, setTaskFormOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | undefined>()
   if (isLoading) return <Shell><div className="content-state page-state"><span className="mini-loader" /><p>Cargando proyecto...</p></div></Shell>
-  if (error || !project) return <Shell><div className="content-state page-state error-state"><p>El proyecto no existe o no tenés acceso.</p><Link className="button" to="/dashboard">Volver al dashboard</Link></div></Shell>
+  if (error || !project) return <Shell><div className="content-state page-state error-state"><p>El proyecto no existe o no tenés acceso.</p><Link className="button" to="/projects">Volver a proyectos</Link></div></Shell>
   const done = project.tasks.filter(task => task.status === 'done').length
   const total = project.tasks.length
   const progress = total ? Math.round(done / total * 100) : 0
@@ -150,7 +206,7 @@ function ProjectPage() {
     setDeleteError('')
     try {
       await deleteProject.mutateAsync(project.id)
-      navigate('/dashboard', { replace: true })
+      navigate('/projects', { replace: true })
     } catch {
       setDeleteError('No pudimos eliminar el proyecto. Intentá nuevamente.')
     }
@@ -169,7 +225,7 @@ function ProjectPage() {
     catch { setTaskError('No pudimos eliminar la tarea.') }
   }
   return <Shell><div className="page-wrap">
-    <Link className="back" to="/dashboard">← Volver a proyectos</Link>
+    <Link className="back" to="/projects">← Volver a proyectos</Link>
     {deleteError && <div className="form-message error" role="alert">{deleteError}</div>}
     {taskError && <div className="form-message error" role="alert">{taskError}</div>}
     <div className="project-title"><div><div className="title-row"><span className={`project-symbol ${status.tone}`}><Code2 /></span><div><span className={`badge ${status.tone}`}><i />{status.label}</span><h1>{project.name}</h1></div></div><p>{project.description || 'Sin descripción todavía.'}</p></div><div className="project-actions">{project.live_url && <a className="button" href={project.live_url} target="_blank" rel="noreferrer"><ExternalLink size={18} /> Ver sitio</a>}{project.repository_url && <a className="button" href={project.repository_url} target="_blank" rel="noreferrer"><Github size={18} /> Repositorio</a>}<Link className="button" to={`/projects/${project.id}/edit`}><Pencil size={17} /> Editar</Link><button className="button danger" onClick={handleDelete} disabled={deleteProject.isPending}><Trash2 size={17} /> {deleteProject.isPending ? 'Eliminando...' : 'Eliminar'}</button></div></div>
@@ -191,8 +247,8 @@ function ProjectEditorPage({ mode }: { mode: 'create' | 'edit' }) {
   const { projectId } = useParams()
   const { data: project, isLoading, error } = useProject(mode === 'edit' ? projectId : undefined)
   if (mode === 'edit' && isLoading) return <Shell><div className="content-state page-state"><span className="mini-loader" /><p>Cargando proyecto...</p></div></Shell>
-  if (mode === 'edit' && (error || !project)) return <Shell><div className="content-state page-state error-state"><p>No pudimos encontrar el proyecto.</p><Link className="button" to="/dashboard">Volver</Link></div></Shell>
-  return <Shell><div className="form-page"><Link className="back" to={project ? `/projects/${project.id}` : '/dashboard'}>← Cancelar y volver</Link><div className="form-heading"><span className="stat-icon blue"><Sparkles /></span><div><h1>{project ? 'Editar proyecto' : 'Nuevo proyecto'}</h1><p>{project ? 'Actualizá la información principal.' : 'Dale un hogar a tu próxima gran idea.'}</p></div></div><ProjectForm project={project} /></div></Shell>
+  if (mode === 'edit' && (error || !project)) return <Shell><div className="content-state page-state error-state"><p>No pudimos encontrar el proyecto.</p><Link className="button" to="/projects">Volver</Link></div></Shell>
+  return <Shell><div className="form-page"><Link className="back" to={project ? `/projects/${project.id}` : '/projects'}>← Cancelar y volver</Link><div className="form-heading"><span className="stat-icon blue"><Sparkles /></span><div><h1>{project ? 'Editar proyecto' : 'Nuevo proyecto'}</h1><p>{project ? 'Actualizá la información principal.' : 'Dale un hogar a tu próxima gran idea.'}</p></div></div><ProjectForm project={project} /></div></Shell>
 }
 
 function MyTasksPage() {
@@ -242,18 +298,18 @@ function MyTasksPage() {
     await changeStatus(task, status)
   }
 
-  return <Shell><div className="tasks-page"><header className="tasks-heading"><div><p className="eyebrow">TU TRABAJO</p><h1>Mis tareas</h1><p>Todo lo pendiente, sin importar en qué proyecto esté.</p></div><div className="tasks-header-actions"><div className="view-toggle" aria-label="Cambiar vista"><button className={viewMode === 'list' ? 'active' : ''} onClick={() => setViewMode('list')} title="Vista lista"><Rows3 size={17} /> Lista</button><button className={viewMode === 'kanban' ? 'active' : ''} onClick={() => setViewMode('kanban')} title="Vista Kanban"><Columns3 size={17} /> Kanban</button></div><Link className="button primary" to="/dashboard"><FolderKanban size={17} /> Ver proyectos</Link></div></header>
+  return <Shell><div className="tasks-page"><header className="tasks-heading"><div><p className="eyebrow">TU TRABAJO</p><h1>Mis tareas</h1><p>Todo lo pendiente, sin importar en qué proyecto esté.</p></div><div className="tasks-header-actions"><div className="view-toggle" aria-label="Cambiar vista"><button className={viewMode === 'list' ? 'active' : ''} onClick={() => setViewMode('list')} title="Vista lista"><Rows3 size={17} /> Lista</button><button className={viewMode === 'kanban' ? 'active' : ''} onClick={() => setViewMode('kanban')} title="Vista Kanban"><Columns3 size={17} /> Kanban</button></div><Link className="button primary" to="/projects"><FolderKanban size={17} /> Ver proyectos</Link></div></header>
     <section className="stats task-stats"><article><span className="stat-icon blue"><ListTodo /></span><div><strong>{projectTasks.filter(task => task.status === 'todo').length}</strong><p>Pendientes</p></div></article><article><span className="stat-icon green"><Rocket /></span><div><strong>{projectTasks.filter(task => task.status === 'in_progress').length}</strong><p>En progreso</p></div></article><article><span className="stat-icon violet"><CheckCircle2 /></span><div><strong>{projectTasks.filter(task => task.status === 'done').length}</strong><p>Completadas</p></div></article></section>
     <section className={`task-filters ${viewMode === 'kanban' ? 'kanban-filters' : ''}`}><label className="search"><Search size={17} /><input aria-label="Buscar tareas" value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar tarea..." /></label><select aria-label="Filtrar por proyecto" value={projectFilter} onChange={event => setProjectFilter(event.target.value)}><option value="all">Todos los proyectos</option>{projectOptions.map(project => <option value={project.id} key={project.id}>{project.name}</option>)}</select>{viewMode === 'list' && <select aria-label="Filtrar por estado" value={statusFilter} onChange={event => setStatusFilter(event.target.value as typeof statusFilter)}><option value="all">Todos los estados</option><option value="todo">Pendientes</option><option value="in_progress">En progreso</option><option value="done">Completadas</option></select>}<select aria-label="Filtrar por prioridad" value={priorityFilter} onChange={event => setPriorityFilter(event.target.value as typeof priorityFilter)}><option value="all">Todas las prioridades</option><option value="high">Alta</option><option value="medium">Media</option><option value="low">Baja</option></select></section>
     {taskError && <div className="form-message error" role="alert">{taskError}</div>}{isLoading && <div className="content-state"><span className="mini-loader" /><p>Cargando tareas...</p></div>}{error && <div className="content-state error-state"><p>No pudimos cargar tus tareas.</p></div>}
-    {!isLoading && !error && viewMode === 'list' && <section className="all-tasks-panel">{groupedTasks.length ? groupedTasks.map(project => <section className="project-task-group" key={project.id}><header className="project-task-heading"><div><span><FolderKanban size={17} /></span><div><h2>{project.name}</h2><p>{project.tasks.length} {project.tasks.length === 1 ? 'tarea' : 'tareas'}</p></div></div><Link to={`/projects/${project.id}`}>Ver proyecto <ArrowRight size={14} /></Link></header>{project.tasks.map(task => <article className="global-task" key={task.id}><button className={task.status === 'done' ? 'task-check checked' : 'task-check'} onClick={() => changeStatus(task, task.status === 'done' ? 'todo' : 'done')} aria-label={task.status === 'done' ? `Reabrir ${task.title}` : `Completar ${task.title}`}>{task.status === 'done' && '✓'}</button><div className="global-task-main"><strong className={task.status === 'done' ? 'completed-title' : ''}>{task.title}</strong><div>{task.due_date && <span className={new Date(`${task.due_date}T23:59:59`) < new Date() && task.status !== 'done' ? 'overdue' : ''}><CalendarDays size={12} /> {new Intl.DateTimeFormat('es-AR').format(new Date(`${task.due_date}T12:00:00`))}</span>}</div></div><select className={`task-status status-${task.status}`} value={task.status} onChange={event => changeStatus(task, event.target.value as TaskStatus)}><option value="todo">Pendiente</option><option value="in_progress">En progreso</option><option value="done">Completada</option></select><span className={`priority ${task.priority === 'high' ? 'alta' : task.priority === 'low' ? 'baja' : 'media'}`}>{task.priority === 'high' ? 'Alta' : task.priority === 'low' ? 'Baja' : 'Media'}</span><div className="task-actions"><button className="icon-button" onClick={() => setEditingTask(task)} aria-label={`Editar ${task.title}`}><Pencil /></button><button className="icon-button danger-icon" onClick={() => removeTask(task)} aria-label={`Eliminar ${task.title}`}><Trash2 /></button></div></article>)}</section>) : <div className="empty-tasks"><ListTodo /><p>No hay tareas que coincidan con los filtros.</p>{tasks.length === 0 && <Link className="button small" to="/dashboard">Crear una desde un proyecto</Link>}</div>}</section>}
+    {!isLoading && !error && viewMode === 'list' && <section className="all-tasks-panel">{groupedTasks.length ? groupedTasks.map(project => <section className="project-task-group" key={project.id}><header className="project-task-heading"><div><span><FolderKanban size={17} /></span><div><h2>{project.name}</h2><p>{project.tasks.length} {project.tasks.length === 1 ? 'tarea' : 'tareas'}</p></div></div><Link to={`/projects/${project.id}`}>Ver proyecto <ArrowRight size={14} /></Link></header>{project.tasks.map(task => <article className="global-task" key={task.id}><button className={task.status === 'done' ? 'task-check checked' : 'task-check'} onClick={() => changeStatus(task, task.status === 'done' ? 'todo' : 'done')} aria-label={task.status === 'done' ? `Reabrir ${task.title}` : `Completar ${task.title}`}>{task.status === 'done' && '✓'}</button><div className="global-task-main"><strong className={task.status === 'done' ? 'completed-title' : ''}>{task.title}</strong><div>{task.due_date && <span className={new Date(`${task.due_date}T23:59:59`) < new Date() && task.status !== 'done' ? 'overdue' : ''}><CalendarDays size={12} /> {new Intl.DateTimeFormat('es-AR').format(new Date(`${task.due_date}T12:00:00`))}</span>}</div></div><select className={`task-status status-${task.status}`} value={task.status} onChange={event => changeStatus(task, event.target.value as TaskStatus)}><option value="todo">Pendiente</option><option value="in_progress">En progreso</option><option value="done">Completada</option></select><span className={`priority ${task.priority === 'high' ? 'alta' : task.priority === 'low' ? 'baja' : 'media'}`}>{task.priority === 'high' ? 'Alta' : task.priority === 'low' ? 'Baja' : 'Media'}</span><div className="task-actions"><button className="icon-button" onClick={() => setEditingTask(task)} aria-label={`Editar ${task.title}`}><Pencil /></button><button className="icon-button danger-icon" onClick={() => removeTask(task)} aria-label={`Eliminar ${task.title}`}><Trash2 /></button></div></article>)}</section>) : <div className="empty-tasks"><ListTodo /><p>No hay tareas que coincidan con los filtros.</p>{tasks.length === 0 && <Link className="button small" to="/projects">Crear una desde un proyecto</Link>}</div>}</section>}
     {!isLoading && !error && viewMode === 'kanban' && <section className="kanban-board">{taskColumns.map(column => { const columnTasks = visibleTasks.filter(task => task.status === column.status); return <div className={`kanban-column ${dropTarget === column.status ? 'drop-target' : ''}`} key={column.status} onDragOver={event => { event.preventDefault(); setDropTarget(column.status) }} onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDropTarget(null) }} onDrop={event => { event.preventDefault(); dropTask(column.status) }}><header><div><i className={`column-dot ${column.status}`} /><h2>{column.label}</h2></div><span>{columnTasks.length}</span></header><div className="kanban-stack">{columnTasks.map(task => <article className={`kanban-card ${draggingTaskId === task.id ? 'dragging' : ''}`} draggable onDragStart={event => { event.dataTransfer.effectAllowed = 'move'; setDraggingTaskId(task.id) }} onDragEnd={() => { setDraggingTaskId(null); setDropTarget(null) }} key={task.id}><div className="kanban-card-top"><GripVertical size={16} /><span className={`priority ${task.priority === 'high' ? 'alta' : task.priority === 'low' ? 'baja' : 'media'}`}>{task.priority === 'high' ? 'Alta' : task.priority === 'low' ? 'Baja' : 'Media'}</span></div><strong className={task.status === 'done' ? 'completed-title' : ''}>{task.title}</strong><Link className="kanban-project" to={`/projects/${task.project_id}`}><FolderKanban size={12} />{task.project_name}</Link>{task.due_date && <span className={`kanban-date ${new Date(`${task.due_date}T23:59:59`) < new Date() && task.status !== 'done' ? 'overdue' : ''}`}><CalendarDays size={12} /> {new Intl.DateTimeFormat('es-AR').format(new Date(`${task.due_date}T12:00:00`))}</span>}<div className="kanban-card-footer"><select value={task.status} onChange={event => changeStatus(task, event.target.value as TaskStatus)} aria-label={`Mover ${task.title}`}><option value="todo">Pendiente</option><option value="in_progress">En progreso</option><option value="done">Completada</option></select><div className="task-actions"><button className="icon-button" onClick={() => setEditingTask(task)} aria-label={`Editar ${task.title}`}><Pencil /></button><button className="icon-button danger-icon" onClick={() => removeTask(task)} aria-label={`Eliminar ${task.title}`}><Trash2 /></button></div></div></article>)}{columnTasks.length === 0 && <div className="kanban-empty">Soltá una tarea acá</div>}</div></div>})}</section>}
     {editingTask && <TaskForm projectId={editingTask.project_id} task={editingTask} onClose={() => setEditingTask(undefined)} />}
   </div></Shell>
 }
 
 function SettingsPage() {
-  const { user, updateEmail, updatePassword, signOutAll } = useAuth()
+  const { user, updateEmail, updatePassword, signOut, signOutAll } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
   const { theme, preference, setTheme } = useTheme()
@@ -327,16 +383,21 @@ function SettingsPage() {
     catch { setError('No pudimos cerrar todas las sesiones.'); setClosingSessions(false) }
   }
 
+  const closeCurrentSession = async () => {
+    await signOut()
+    navigate('/login', { replace: true })
+  }
+
   return <Shell><div className="settings-page"><div className="settings-heading"><p className="eyebrow">TU ESPACIO</p><h1>Configuración</h1><p>Personalizá la experiencia, tu cuenta y la privacidad de tus datos.</p></div>
     {error && <div className="form-message error" role="alert">{error}</div>}
     <div className="settings-grid">
       <section className="settings-card settings-wide focus-settings-card"><div className="settings-card-title"><span><Timer /></span><div><h2>Preferencias Focus</h2><p>Personalizá cómo empiezan, terminan y se muestran tus sesiones.</p></div></div><div className="focus-settings-selects"><label>Duración predeterminada<select value={preferences.focusDefaultMinutes} onChange={event => updatePreference('focusDefaultMinutes', Number(event.target.value))}><option value={25}>25 minutos</option><option value={30}>30 minutos</option><option value={45}>45 minutos</option><option value={60}>1 hora</option><option value={90}>1 hora 30</option><option value={120}>2 horas</option></select><small>Se seleccionará automáticamente al preparar un nuevo Focus.</small></label><label>Posición del temporizador<select value={preferences.focusTimerPosition} onChange={event => updatePreference('focusTimerPosition', event.target.value as typeof preferences.focusTimerPosition)}><option value="top-right">Arriba a la derecha</option><option value="top-left">Arriba a la izquierda</option><option value="bottom-left">Abajo a la izquierda</option></select><small>Podés elegir el lugar que menos interfiera con tu trabajo.</small></label><label>Objetivo diario<select value={preferences.focusDailyGoalMinutes} onChange={event => updatePreference('focusDailyGoalMinutes', Number(event.target.value))}><option value={30}>30 minutos</option><option value={60}>1 hora</option><option value={90}>1 hora 30</option><option value={120}>2 horas</option><option value={180}>3 horas</option><option value={240}>4 horas</option></select><small>El asistente usará esta meta para interpretar tu ritmo diario.</small></label></div><div className="settings-switches focus-settings-switches"><label className="setting-switch-row"><div><strong>Iniciar minimizado</strong><small>Las nuevas sesiones mostrarán únicamente el tiempo restante.</small></div><input type="checkbox" checked={preferences.focusStartMinimized} onChange={event => updatePreference('focusStartMinimized', event.target.checked)} /><i /></label><label className="setting-switch-row"><div><strong>Sonido al finalizar</strong><small>Reproduce un aviso breve cuando el contador llega a cero.</small></div><input type="checkbox" checked={preferences.focusSoundEnabled} onChange={event => updatePreference('focusSoundEnabled', event.target.checked)} /><i /></label><label className="setting-switch-row"><div><strong>Confirmar antes de descartar</strong><small>Evita perder accidentalmente una sesión que todavía no guardaste.</small></div><input type="checkbox" checked={preferences.focusConfirmDiscard} onChange={event => updatePreference('focusConfirmDiscard', event.target.checked)} /><i /></label><label className="setting-switch-row"><div><strong>Usar historial en el asistente</strong><small>Permite recomendaciones basadas en tiempos, resultados y próximos pasos.</small></div><input type="checkbox" checked={preferences.assistantUseFocusHistory} disabled={!preferences.assistantEnabled} onChange={event => updatePreference('assistantUseFocusHistory', event.target.checked)} /><i /></label></div></section>
       <section className="settings-card settings-wide"><div className="settings-card-title"><span>{preference === 'system' ? <Laptop /> : theme === 'dark' ? <Moon /> : <Sun />}</span><div><h2>Apariencia</h2><p>Elegí el tema o seguí automáticamente la configuración del dispositivo.</p></div></div><div className="theme-options"><button className={preference === 'light' ? 'active' : ''} type="button" onClick={() => setTheme('light')}><span className="theme-preview light-preview"><i /><i /><i /></span><strong><Sun size={16} /> Claro</strong></button><button className={preference === 'dark' ? 'active' : ''} type="button" onClick={() => setTheme('dark')}><span className="theme-preview dark-preview"><i /><i /><i /></span><strong><Moon size={16} /> Oscuro</strong></button><button className={preference === 'system' ? 'active' : ''} type="button" onClick={() => setTheme('system')}><span className="theme-preview system-preview"><i /><i /><i /></span><strong><Laptop size={16} /> Sistema</strong></button></div></section>
-      <section className="settings-card settings-wide"><div className="settings-card-title"><span><SlidersHorizontal /></span><div><h2>Preferencias del espacio</h2><p>Definí dónde empezar y cómo organizar tu trabajo.</p></div></div><div className="settings-preference-grid"><label>Página de inicio<select value={preferences.defaultPage} onChange={event => updatePreference('defaultPage', event.target.value as typeof preferences.defaultPage)}><option value="/dashboard">Proyectos</option><option value="/tasks">Mis tareas</option><option value="/ideas">Ideas</option></select><small>Se abrirá después de iniciar sesión y al tocar el logo.</small></label><label>Vista predeterminada de tareas<select value={preferences.defaultTaskView} onChange={event => updatePreference('defaultTaskView', event.target.value as typeof preferences.defaultTaskView)}><option value="list">Lista</option><option value="kanban">Kanban</option></select><small>Se aplicará al volver a entrar en Mis tareas.</small></label></div></section>
+      <section className="settings-card settings-wide"><div className="settings-card-title"><span><SlidersHorizontal /></span><div><h2>Preferencias del espacio</h2><p>Definí dónde empezar y cómo organizar tu trabajo.</p></div></div><div className="settings-preference-grid"><label>Página de inicio<select value={preferences.defaultPage} onChange={event => updatePreference('defaultPage', event.target.value as typeof preferences.defaultPage)}><option value="/dashboard">Inicio y resumen</option><option value="/projects">Proyectos</option><option value="/tasks">Mis tareas</option><option value="/ideas">Ideas</option></select><small>Se abrirá después de iniciar sesión y al tocar el logo.</small></label><label>Vista predeterminada de tareas<select value={preferences.defaultTaskView} onChange={event => updatePreference('defaultTaskView', event.target.value as typeof preferences.defaultTaskView)}><option value="list">Lista</option><option value="kanban">Kanban</option></select><small>Se aplicará al volver a entrar en Mis tareas.</small></label></div></section>
       <section className="settings-card settings-wide"><div className="settings-card-title"><span><Bot /></span><div><h2>Asistente DevHub</h2><p>Controlá su presencia y el tipo de ayuda que querés recibir.</p></div></div><div className="settings-switches"><label className="setting-switch-row"><div><strong>Mostrar asistente</strong><small>Activa el botón flotante en toda la aplicación.</small></div><input type="checkbox" checked={preferences.assistantEnabled} onChange={event => updatePreference('assistantEnabled', event.target.checked)} /><i /></label><label className="setting-switch-row"><div><strong>Sugerencias rápidas</strong><small>Muestra preguntas relacionadas debajo de la conversación.</small></div><input type="checkbox" checked={preferences.assistantSuggestions} disabled={!preferences.assistantEnabled} onChange={event => updatePreference('assistantSuggestions', event.target.checked)} /><i /></label><label className="setting-switch-row"><div><strong>Recomendación al abrir</strong><small>Analiza tu trabajo y propone automáticamente un proyecto.</small></div><input type="checkbox" checked={preferences.proactiveRecommendations} disabled={!preferences.assistantEnabled} onChange={event => updatePreference('proactiveRecommendations', event.target.checked)} /><i /></label></div></section>
       <form className="settings-card" onSubmit={saveProfile}><div className="settings-card-title"><span><UserRound /></span><div><h2>Perfil</h2><p>La información que identifica tu cuenta.</p></div></div><label>Nombre<input value={username} onChange={event => setUsername(event.target.value)} /></label><label>Email<input type="email" value={email} onChange={event => setEmail(event.target.value)} /></label>{profileMessage && <div className="form-message success">{profileMessage}</div>}<button className="button primary" disabled={savingProfile}><Save size={17} /> {savingProfile ? 'Guardando...' : 'Guardar cambios'}</button></form>
       <form className="settings-card" onSubmit={savePassword}><div className="settings-card-title"><span><KeyRound /></span><div><h2>Contraseña</h2><p>Usá una contraseña única de al menos 8 caracteres.</p></div></div><label>Nueva contraseña<input type="password" autoComplete="new-password" value={newPassword} onChange={event => setNewPassword(event.target.value)} /></label><label>Confirmar contraseña<input type="password" autoComplete="new-password" value={confirmation} onChange={event => setConfirmation(event.target.value)} /></label>{passwordMessage && <div className="form-message success">{passwordMessage}</div>}<button className="button primary" disabled={savingPassword}><KeyRound size={17} /> {savingPassword ? 'Actualizando...' : 'Actualizar contraseña'}</button></form>
-      <section className="settings-card"><div className="settings-card-title"><span><ShieldCheck /></span><div><h2>Sesiones</h2><p>Protegé la cuenta si dejaste una sesión abierta.</p></div></div><p className="settings-card-copy">Cierra el acceso de DevHub en todos los dispositivos, incluido este.</p><button className="button" type="button" onClick={closeAllSessions} disabled={closingSessions}><LogOut size={17} /> {closingSessions ? 'Cerrando sesiones...' : 'Cerrar todas las sesiones'}</button></section>
+      <section className="settings-card"><div className="settings-card-title"><span><ShieldCheck /></span><div><h2>Sesiones</h2><p>Protegé la cuenta y controlá dónde está abierta.</p></div></div><p className="settings-card-copy">Podés cerrar solamente este dispositivo o revocar todas las sesiones activas.</p><div className="settings-session-actions"><button className="button" type="button" onClick={closeCurrentSession}><LogOut size={17} /> Cerrar esta sesión</button><button className="button" type="button" onClick={closeAllSessions} disabled={closingSessions}><ShieldCheck size={17} /> {closingSessions ? 'Cerrando sesiones...' : 'Cerrar todas'}</button></div></section>
       <section className="settings-card"><div className="settings-card-title"><span><Database /></span><div><h2>Datos y privacidad</h2><p>Descargá una copia de toda tu información.</p></div></div><p className="settings-card-copy">Incluye tu perfil, proyectos, tareas e ideas en un archivo JSON.</p><button className="button" type="button" onClick={exportData} disabled={exporting}><Download size={17} /> {exporting ? 'Preparando archivo...' : 'Exportar mis datos'}</button></section>
     </div></div></Shell>
 }
@@ -350,5 +411,5 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 export function App() {
-  return <Routes><Route path="/login" element={<AuthPage mode="login" />} /><Route path="/register" element={<AuthPage mode="register" />} /><Route path="/forgot-password" element={<ForgotPasswordPage />} /><Route path="/reset-password" element={<ResetPasswordPage />} /><Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} /><Route path="/tasks" element={<ProtectedRoute><MyTasksPage /></ProtectedRoute>} /><Route path="/ideas" element={<ProtectedRoute><Shell><IdeasPage /></Shell></ProtectedRoute>} /><Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} /><Route path="/projects/new" element={<ProtectedRoute><ProjectEditorPage mode="create" /></ProtectedRoute>} /><Route path="/projects/:projectId/edit" element={<ProtectedRoute><ProjectEditorPage mode="edit" /></ProtectedRoute>} /><Route path="/projects/:projectId" element={<ProtectedRoute><ProjectPage /></ProtectedRoute>} /><Route path="*" element={<Navigate to="/dashboard" replace />} /></Routes>
+  return <Routes><Route path="/login" element={<AuthPage mode="login" />} /><Route path="/register" element={<AuthPage mode="register" />} /><Route path="/forgot-password" element={<ForgotPasswordPage />} /><Route path="/reset-password" element={<ResetPasswordPage />} /><Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} /><Route path="/projects" element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>} /><Route path="/tasks" element={<ProtectedRoute><MyTasksPage /></ProtectedRoute>} /><Route path="/ideas" element={<ProtectedRoute><Shell><IdeasPage /></Shell></ProtectedRoute>} /><Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} /><Route path="/projects/new" element={<ProtectedRoute><ProjectEditorPage mode="create" /></ProtectedRoute>} /><Route path="/projects/:projectId/edit" element={<ProtectedRoute><ProjectEditorPage mode="edit" /></ProtectedRoute>} /><Route path="/projects/:projectId" element={<ProtectedRoute><ProjectPage /></ProtectedRoute>} /><Route path="*" element={<Navigate to="/dashboard" replace />} /></Routes>
 }

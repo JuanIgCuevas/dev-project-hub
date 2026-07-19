@@ -130,7 +130,7 @@ export function AssistantWidget() {
     if (/pausad/.test(query)) {
       const paused = projects.filter(project => project.status === 'paused')
       if (!paused.length) return { text: 'No tenés proyectos pausados.' }
-      return { text: `Proyectos pausados:\n${formatList(paused.map(project => project.name))}`, link: '/dashboard', linkLabel: 'Ver proyectos' }
+      return { text: `Proyectos pausados:\n${formatList(paused.map(project => project.name))}`, link: '/projects', linkLabel: 'Ver proyectos' }
     }
     if (/pulse|salud|ritmo|abandon|rescate/.test(query)) {
       const atRisk = projects.map(project => ({ project, pulse: getProjectPulse(project, tasks) })).filter(item => item.pulse.state === 'stale' || item.pulse.state === 'blocked' || item.pulse.state === 'slowing')
