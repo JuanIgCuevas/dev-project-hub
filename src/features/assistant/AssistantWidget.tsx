@@ -9,6 +9,7 @@ import type { TaskOverview } from '../tasks/taskApi'
 import { usePreferences } from '../preferences/preferencesContext'
 import { getProjectPulse } from '../projects/projectHealth'
 import { useMyFocusSessions } from '../focus/focusApi'
+import { getBuildReceipt, getRevivalPlans } from '../revival/revivalEngine'
 
 type AssistantMessage = {
   id: number
@@ -26,6 +27,7 @@ const suggestions = [
   'Mostrame las tareas prioritarias',
   '¿Qué ideas tengo pendientes?',
   '¿Cómo vienen mis sesiones Focus?',
+  '¿Qué proyecto necesita rescate?',
 ]
 
 function getFollowUpSuggestions(question: string) {
@@ -37,6 +39,7 @@ function getFollowUpSuggestions(question: string) {
   if (/pulse|salud|ritmo|abandon|rescate/.test(query)) return ['Tengo 30 minutos, ¿qué hago?', '¿Tengo tareas vencidas?', 'Mostrame las tareas prioritarias']
   if (/30 min|media hora|60 min|una hora|1 hora|2 horas/.test(query)) return ['¿Cómo está el pulse de mis proyectos?', '¿Tengo tareas vencidas?', '¿Qué ideas tengo pendientes?']
   if (/focus|sesion|tiempo enfocado|productividad/.test(query)) return ['¿Qué proyecto debería continuar?', 'Tengo 30 minutos, ¿qué hago?', 'Dame un resumen general']
+  if (/memoria|retomar|reactiv|revival|rescate/.test(query)) return ['¿Cómo vienen mis sesiones Focus?', '¿Qué proyecto debería continuar?', 'Mostrame mi semana construyendo']
   if (/proyecto|continuar|seguir|hoy|recomend/.test(query)) return ['¿Tengo tareas vencidas?', 'Mostrame las tareas prioritarias', '¿Qué ideas tengo pendientes?']
   if (/resumen|estado|como voy/.test(query)) return ['¿Qué proyecto debería continuar?', '¿Tengo tareas vencidas?', '¿Qué ideas tengo pendientes?']
   return suggestions
@@ -104,6 +107,9 @@ export function AssistantWidget() {
     const recentFocusMinutes = Math.round(recentFocusSessions.reduce((total, session) => total + session.focused_seconds, 0) / 60)
     const todayKey = new Date().toDateString()
     const todayFocusMinutes = Math.round(focusSessions.filter(session => new Date(session.completed_at).toDateString() === todayKey).reduce((total, session) => total + session.focused_seconds, 0) / 60)
+    const revivalPlans = getRevivalPlans(projects, tasks, focusSessions)
+    const rescuePlan = revivalPlans[0]
+    const buildReceipt = getBuildReceipt(projects, tasks, focusSessions)
 
     if (/hola|buenas|ayuda|que podes|qué podés/.test(query)) {
       return { text: 'Puedo recomendarte un proyecto, buscar tareas vencidas, revisar ideas y resumir tus sesiones Focus, incluyendo tiempo trabajado, resultados y próximos pasos.' }
@@ -131,6 +137,15 @@ export function AssistantWidget() {
       const paused = projects.filter(project => project.status === 'paused')
       if (!paused.length) return { text: 'No tenés proyectos pausados.' }
       return { text: `Proyectos pausados:\n${formatList(paused.map(project => project.name))}`, link: '/projects', linkLabel: 'Ver proyectos' }
+    }
+    if (/memoria|retomar|reactiv|revival|abandon|rescate/.test(query)) {
+      if (!rescuePlan) return { text: 'No encontré proyectos activos para reactivar. Podés convertir una idea en proyecto.', link: '/ideas', linkLabel: 'Explorar ideas' }
+      const memory = rescuePlan.latestSession
+      const details = [memory?.outcome && `Último resultado: ${memory.outcome}`, memory?.pending && `Quedó pendiente: ${memory.pending}`, `Siguiente acción: ${rescuePlan.nextAction}`].filter(Boolean)
+      return { text: `El proyecto que más necesita recuperar impulso es “${rescuePlan.project.name}”. Te propongo una sesión de rescate de ${rescuePlan.rescueMinutes} minutos.\n${formatList(details as string[])}`, link: `/projects/${rescuePlan.project.id}`, linkLabel: 'Abrir memoria del proyecto' }
+    }
+    if (/mi semana|semana constru|build receipt|recibo/.test(query)) {
+      return { text: `En los últimos 7 días acumulaste ${buildReceipt.focusedMinutes} minutos de foco en ${buildReceipt.sessions} sesiones, completaste ${buildReceipt.completedTasks} tareas y trabajaste en ${buildReceipt.activeProjects} proyectos. ${buildReceipt.rescuedProjects ? `Además retomaste ${buildReceipt.rescuedProjects} ${buildReceipt.rescuedProjects === 1 ? 'proyecto' : 'proyectos'}.` : 'Tu próxima sesión puede ser la que reactive un proyecto.'}`, link: '/dashboard', linkLabel: 'Ver Build Receipt' }
     }
     if (/pulse|salud|ritmo|abandon|rescate/.test(query)) {
       const atRisk = projects.map(project => ({ project, pulse: getProjectPulse(project, tasks) })).filter(item => item.pulse.state === 'stale' || item.pulse.state === 'blocked' || item.pulse.state === 'slowing')

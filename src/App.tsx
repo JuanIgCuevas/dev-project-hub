@@ -24,6 +24,8 @@ import { useTheme } from './features/theme/themeContext'
 import { usePreferences } from './features/preferences/preferencesContext'
 import { OnboardingTour } from './features/onboarding/OnboardingTour'
 import { onboardingStorageKey } from './features/onboarding/onboardingStorage'
+import { ProjectRevivalMemory } from './features/revival/ProjectRevivalMemory'
+import { RevivalDashboard } from './features/revival/RevivalDashboard'
 import type { ProjectStatus, Task, TaskStatus } from './types/database'
 
 const projectStatus: Record<ProjectStatus, { label: string; tone: string }> = {
@@ -152,6 +154,7 @@ function Dashboard() {
       <article><span className="stat-icon amber"><Clock3 /></span><div><strong>{todayFocusMinutes}</strong><p>Minutos Focus hoy</p></div></article>
     </section>
     <FocusDailyGoal />
+    <RevivalDashboard projects={projects} tasks={dashboardTasks} sessions={focusSessions} />
     <FocusPanel projects={projects} tasks={dashboardTasks} />
   </Shell>
 }
@@ -242,6 +245,7 @@ function ProjectPage() {
     {deleteError && <div className="form-message error" role="alert">{deleteError}</div>}
     {taskError && <div className="form-message error" role="alert">{taskError}</div>}
     <div className="project-title"><div><div className="title-row"><span className={`project-symbol ${status.tone}`}><Code2 /></span><div><span className={`badge ${status.tone}`}><i />{status.label}</span><h1>{project.name}</h1></div></div><p>{project.description || 'Sin descripción todavía.'}</p></div><div className="project-actions">{project.live_url && <a className="button" href={project.live_url} target="_blank" rel="noreferrer"><ExternalLink size={18} /> Ver sitio</a>}{project.repository_url && <a className="button" href={project.repository_url} target="_blank" rel="noreferrer"><Github size={18} /> Repositorio</a>}<Link className="button" to={`/projects/${project.id}/edit`}><Pencil size={17} /> Editar</Link><button className="button danger" onClick={handleDelete} disabled={deleteProject.isPending}><Trash2 size={17} /> {deleteProject.isPending ? 'Eliminando...' : 'Eliminar'}</button></div></div>
+    <ProjectRevivalMemory project={project} />
     <div className="project-layout"><section>
       <div className="panel"><div className="panel-head"><div><h2>Tareas</h2><p>El próximo paso siempre visible.</p></div><div className="project-task-header-actions">{total > 0 && <Link className="button small" to={`/tasks?project=${project.id}`}><ListTodo size={16} /> Ver todas</Link>}<button className="button small primary" onClick={() => openTaskForm()}><Plus size={16} /> Nueva tarea</button></div></div>
         <div className="task-list">{sortedTasks.length ? sortedTasks.map(task => <div className="task" key={task.id}><button aria-label={task.status === 'done' ? `Marcar ${task.title} como pendiente` : `Completar ${task.title}`} onClick={() => handleTaskStatus(task, task.status === 'done' ? 'todo' : 'done')} className={task.status === 'done' ? 'task-check checked' : 'task-check'}>{task.status === 'done' && '✓'}</button><div className="task-content"><strong className={task.status === 'done' ? 'completed-title' : ''}>{task.title}</strong><span>{task.description || (task.status === 'done' ? 'Completada' : task.status === 'in_progress' ? 'En progreso' : 'Pendiente')}</span>{task.due_date && <small><CalendarDays size={12} /> {new Intl.DateTimeFormat('es-AR').format(new Date(`${task.due_date}T12:00:00`))}</small>}</div><select className={`task-status status-${task.status}`} value={task.status} onChange={event => handleTaskStatus(task, event.target.value as TaskStatus)} aria-label={`Estado de ${task.title}`}><option value="todo">Pendiente</option><option value="in_progress">En progreso</option><option value="done">Completada</option></select><span className={`priority ${task.priority === 'high' ? 'alta' : task.priority === 'low' ? 'baja' : 'media'}`}>{task.priority === 'high' ? 'Alta' : task.priority === 'low' ? 'Baja' : 'Media'}</span><div className="task-actions"><button className="icon-button" aria-label={`Editar ${task.title}`} onClick={() => openTaskForm(task)}><Pencil /></button><button className="icon-button danger-icon" aria-label={`Eliminar ${task.title}`} onClick={() => handleDeleteTask(task)}><Trash2 /></button></div></div>) : <div className="empty-tasks"><ListTodo /><p>Todavía no hay tareas en este proyecto.</p><button className="button small" onClick={() => openTaskForm()}><Plus size={16} /> Crear primera tarea</button></div>}</div>
