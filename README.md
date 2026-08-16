@@ -143,4 +143,5 @@ de forma privada.
 
 - [Guion de demo de 3 minutos](./docs/DEMO_GUIDE.md)
 - [Caso de estudio para portfolio](./docs/CASE_STUDY.md)
+- [Lista de control para publicar](./docs/RELEASE_CHECKLIST.md)
 - [Política de seguridad](./SECURITY.md)

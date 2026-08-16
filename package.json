@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check": "npm run lint && npm test && npm run build"
+    "check": "npm run lint && npm test && npm run build",
+    "release:check": "npm run check && npm audit --omit=dev --audit-level=high"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
