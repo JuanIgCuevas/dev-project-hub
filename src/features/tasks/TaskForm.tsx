@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import type { Task } from '../../types/database'
 import { useCreateTask, useUpdateTask } from './taskApi'
+import { useToast } from '../feedback/toastContext'
 
 const taskSchema = z.object({
   title: z.string().trim().min(2, 'Ingresá al menos 2 caracteres.').max(160),
@@ -16,6 +17,7 @@ const taskSchema = z.object({
 type TaskFormValues = z.infer<typeof taskSchema>
 
 export function TaskForm({ projectId, task, onClose }: { projectId: string; task?: Task; onClose: () => void }) {
+  const { showToast } = useToast()
   const createTask = useCreateTask()
   const updateTask = useUpdateTask()
   const [serverError, setServerError] = useState('')
@@ -46,6 +48,7 @@ export function TaskForm({ projectId, task, onClose }: { projectId: string; task
     try {
       if (task) await updateTask.mutateAsync({ id: task.id, input })
       else await createTask.mutateAsync({ projectId, input })
+      showToast(task ? 'Tarea actualizada correctamente.' : 'Tarea creada correctamente.')
       onClose()
     } catch {
       setServerError('No pudimos guardar la tarea. Intentá nuevamente.')

@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { AlertTriangle, ArrowRight, Check, Circle, Eye, EyeOff, Sparkles } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Check, Circle, Eye, EyeOff, Languages, Sparkles } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
@@ -27,7 +27,7 @@ function getAuthError(error: unknown) {
 
 export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   const { signIn, signUp, signOut, user } = useAuth()
-  const { preferences } = usePreferences()
+  const { preferences, updatePreference } = usePreferences()
   const navigate = useNavigate()
   const location = useLocation()
   const [serverError, setServerError] = useState('')
@@ -93,8 +93,8 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
     } catch (error) { setServerError(getAuthError(error)) }
   }
 
-  return <div className={`auth-page ${isLogin ? 'login-mode' : 'register-mode'}`}><div className="auth-copy"><Link className="brand" to="/"><span className="brand-mark">{'</>'}</span><span>Dev<span>Hub</span></span></Link><div><span className="auth-label"><Sparkles size={15} /> CONSTRUYE CON INTENCIÓN</span><h1>Tus ideas merecen<br /><em>llegar a producción.</em></h1><p>Organiza tus proyectos, mantén el foco y convierte tu próximo side project en algo real.</p></div><blockquote>“La herramienta que necesitaba para dejar de abandonar proyectos a mitad de camino.”<footer>— Un developer con demasiadas ideas</footer></blockquote></div>
-    <div className="auth-panel"><form className="auth-form" onSubmit={handleSubmit(onSubmit)} noValidate><h2>{isLogin ? 'Bienvenido de nuevo' : 'Creá tu cuenta'}</h2><p>{isLogin ? 'Continúa construyendo donde lo dejaste.' : 'Tu próximo proyecto empieza acá.'}</p>
+  return <div className={`auth-page ${isLogin ? 'login-mode' : 'register-mode'}`}><div className="auth-copy"><Link className="brand" to="/"><span className="brand-mark">DH</span><span className="brand-copy"><span className="brand-name">Dev<span>Hub</span></span><small>BUILD SYSTEM · 2026</small></span></Link><div><span className="auth-label"><Sparkles size={15} /> CONSTRUYE CON INTENCIÓN</span><h1>Tus ideas merecen<br /><em>llegar a producción.</em></h1><p>Organiza tus proyectos, mantén el foco y convierte tu próximo side project en algo real.</p></div><blockquote>“La herramienta que necesitaba para dejar de abandonar proyectos a mitad de camino.”<footer>— Un developer con demasiadas ideas</footer></blockquote></div>
+    <div className="auth-panel"><label className="auth-language-switch"><Languages /><span>Idioma</span><select aria-label="Idioma de la aplicación" value={preferences.language} onChange={event => updatePreference('language', event.target.value as typeof preferences.language)}><option value="es">ES</option><option value="en">EN</option></select></label><form className="auth-form" onSubmit={handleSubmit(onSubmit)} noValidate><h2>{isLogin ? 'Bienvenido de nuevo' : 'Creá tu cuenta'}</h2><p>{isLogin ? 'Continúa construyendo donde lo dejaste.' : 'Tu próximo proyecto empieza acá.'}</p>
       {!isLogin && <label>Nombre<input autoComplete="name" {...register('username')} placeholder="¿Cómo te llamamos?" /><small>{errors.username?.message}</small></label>}
       <label>Email<input type="email" inputMode="email" autoComplete="email" autoCapitalize="none" spellCheck={false} {...register('email')} placeholder="vos@email.com" /><small>{errors.email?.message}</small></label>
       <label>Contraseña<div className="password-field"><input type={showPassword ? 'text' : 'password'} autoComplete={isLogin ? 'current-password' : 'new-password'} {...passwordRegistration} onKeyUp={event => setCapsLock(event.getModifierState('CapsLock'))} onBlur={event => { passwordRegistration.onBlur(event); setCapsLock(false) }} placeholder={isLogin ? 'Tu contraseña' : 'Creá una contraseña segura'} /><button type="button" onClick={() => setShowPassword(current => !current)} aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'} aria-pressed={showPassword}>{showPassword ? <EyeOff /> : <Eye />}</button></div><small>{errors.password?.message}</small>{capsLock && <span className="caps-lock-warning"><AlertTriangle /> Bloq Mayús está activado</span>}{isLogin && <Link className="forgot-link" to="/forgot-password">¿Olvidaste tu contraseña?</Link>}</label>

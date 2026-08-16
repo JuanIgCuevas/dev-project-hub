@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
-import { supabase } from '../../lib/supabase'
+import { isSupabaseConfigured, supabase } from '../../lib/supabase'
 
 interface SignUpInput { email: string; password: string; username: string }
 interface AuthContextValue {
@@ -27,12 +27,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => { setSession(data.session); setLoading(false) })
+    let active = true
+    const finishLoading = () => {
+      if (active) setLoading(false)
+    }
+
+    if (!isSupabaseConfigured) {
+      finishLoading()
+      return
+    }
+
+    // Never leave the app trapped behind the startup screen if storage, the
+    // network or an expired refresh token makes Supabase take too long.
+    const startupTimeout = window.setTimeout(finishLoading, 6_000)
+
+    void supabase.auth.getSession()
+      .then(({ data, error }) => {
+        if (!active) return
+        if (!error) setSession(data.session)
+      })
+      .catch(() => {
+        if (active) setSession(null)
+      })
+      .finally(finishLoading)
+
     const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (!active) return
       setSession(nextSession)
-      setLoading(false)
+      finishLoading()
     })
-    return () => data.subscription.unsubscribe()
+    return () => {
+      active = false
+      window.clearTimeout(startupTimeout)
+      data.subscription.unsubscribe()
+    }
   }, [])
 
   const value = useMemo<AuthContextValue>(() => ({

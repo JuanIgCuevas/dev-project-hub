@@ -7,6 +7,7 @@ import { AuthProvider } from './features/auth/AuthProvider'
 import { ThemeProvider } from './features/theme/ThemeProvider'
 import { PreferencesProvider } from './features/preferences/PreferencesProvider'
 import { FocusProvider } from './features/focus/FocusProvider'
+import { ToastProvider } from './features/feedback/ToastProvider'
 import './styles.css'
 
 const queryClient = new QueryClient({
@@ -19,11 +20,13 @@ createRoot(document.getElementById('root')!).render(
       <ThemeProvider>
         <PreferencesProvider>
           <AuthProvider>
-            <FocusProvider>
-              <BrowserRouter>
-                <App />
-              </BrowserRouter>
-            </FocusProvider>
+            <ToastProvider>
+              <FocusProvider>
+                <BrowserRouter>
+                  <App />
+                </BrowserRouter>
+              </FocusProvider>
+            </ToastProvider>
           </AuthProvider>
         </PreferencesProvider>
       </ThemeProvider>

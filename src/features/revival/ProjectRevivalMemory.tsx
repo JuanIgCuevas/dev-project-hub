@@ -24,6 +24,7 @@ export function ProjectRevivalMemory({ project }: { project: ProjectDetails }) {
   })
   const nextTask = pendingTasks[0]
   const nextAction = latest?.next_step?.trim() || nextTask?.title || 'Definir el próximo avance concreto.'
+  const nextActionIsUserContent = Boolean(latest?.next_step?.trim() || nextTask?.title)
   const duration = latest ? Math.max(15, Math.min(45, Math.round(latest.focused_seconds / 60 / 5) * 5 || 20)) : 20
 
   const beginRescue = () => {
@@ -36,11 +37,11 @@ export function ProjectRevivalMemory({ project }: { project: ProjectDetails }) {
     <div className="panel-head"><div><p className="eyebrow"><Brain /> MEMORIA DEL PROYECTO</p><h2>Tu contexto para volver</h2><p>Lo importante de la última sesión, preparado para tu yo del futuro.</p></div>{latest && <span className="memory-date"><History /> {relativeSessionDate(latest.completed_at)}</span>}</div>
     {isLoading ? <div className="intelligence-loading"><span className="mini-loader" /> Reconstruyendo contexto...</div> : <div className="memory-grid">
       <div className="memory-trail">
-        <article><span><CheckCircle2 /></span><div><small>ÚLTIMO RESULTADO</small><strong>{latest?.outcome || 'Todavía no registraste qué resolviste.'}</strong></div></article>
-        <article><span><Clock3 /></span><div><small>QUEDÓ PENDIENTE</small><strong>{latest?.pending || (pendingTasks.length ? `${pendingTasks.length} tareas esperan atención.` : 'No hay pendientes registrados.')}</strong></div></article>
-        <article className="future-message"><span><MessageSquareQuote /></span><div><small>MENSAJE PARA TU PRÓXIMA SESIÓN</small><strong>{nextAction}</strong></div></article>
+        <article><span><CheckCircle2 /></span><div><small>ÚLTIMO RESULTADO</small><strong>{latest?.outcome ? <span data-no-translate>{latest.outcome}</span> : 'Todavía no registraste qué resolviste.'}</strong></div></article>
+        <article><span><Clock3 /></span><div><small>QUEDÓ PENDIENTE</small><strong>{latest?.pending ? <span data-no-translate>{latest.pending}</span> : pendingTasks.length ? `${pendingTasks.length} tareas esperan atención.` : 'No hay pendientes registrados.'}</strong></div></article>
+        <article className="future-message"><span><MessageSquareQuote /></span><div><small>MENSAJE PARA TU PRÓXIMA SESIÓN</small><strong>{nextActionIsUserContent ? <span data-no-translate>{nextAction}</span> : nextAction}</strong></div></article>
       </div>
-      <aside className="memory-rescue"><Target /><p className="eyebrow">ACCIÓN MÍNIMA VIABLE</p><h3>{nextAction}</h3><span>{duration} minutos para recuperar el impulso sin sobrecargarte.</span><button className="button primary" onClick={beginRescue} disabled={Boolean(session)}><Play /> {session ? 'Sesión en curso' : `Retomar durante ${duration} min`}</button></aside>
+      <aside className="memory-rescue"><Target /><p className="eyebrow">ACCIÓN MÍNIMA VIABLE</p><h3>{nextActionIsUserContent ? <span data-no-translate>{nextAction}</span> : nextAction}</h3><span>{duration} minutos para recuperar el impulso sin sobrecargarte.</span><button className="button primary" onClick={beginRescue} disabled={Boolean(session)}><Play /> {session ? 'Sesión en curso' : `Retomar durante ${duration} min`}</button></aside>
     </div>}
   </section>
 }
