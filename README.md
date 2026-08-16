@@ -1,80 +1,146 @@
-# Dev Project Hub
+<p align="center">
+  <img src="./public/og-devhub.png" alt="DevHub — Build, Focus, Ship" width="900" />
+</p>
 
-[![Quality](https://github.com/JuanIgCuevas/dev-project-hub/actions/workflows/quality.yml/badge.svg?branch=Development)](https://github.com/JuanIgCuevas/dev-project-hub/actions/workflows/quality.yml)
+<h1 align="center">DevHub</h1>
 
-Plataforma para que desarrolladores independientes organicen, gestionen y hagan seguimiento de sus proyectos personales.
+<p align="center">
+  Un sistema de trabajo para transformar ideas en proyectos terminados.
+</p>
 
-## Producto
+<p align="center">
+  <a href="https://github.com/JuanIgCuevas/dev-project-hub/actions/workflows/quality.yml"><img src="https://github.com/JuanIgCuevas/dev-project-hub/actions/workflows/quality.yml/badge.svg?branch=Development" alt="Quality" /></a>
+  <img src="https://img.shields.io/badge/React-19-61dafb?logo=react&logoColor=101820" alt="React 19" />
+  <img src="https://img.shields.io/badge/TypeScript-5-3178c6?logo=typescript&logoColor=white" alt="TypeScript 5" />
+  <img src="https://img.shields.io/badge/Supabase-RLS-3ecf8e?logo=supabase&logoColor=white" alt="Supabase RLS" />
+</p>
 
-- Autenticacion con email y contrasena.
-- Dashboard personal de proyectos.
-- Creacion y seguimiento de proyectos.
-- Tareas con estado y prioridad.
-- Acceso seguro a los datos mediante Supabase RLS.
-- Paginas publicas para compartir proyectos terminados.
-- Interfaz en espanol e ingles, con tema claro y oscuro.
-- Historial de sesiones Focus, decisiones tecnicas y memoria de avances.
-- Aplicacion web instalable con aviso de conexion y acceso al contenido ya cargado.
+DevHub ayuda a desarrolladores independientes a organizar proyectos, elegir el
+próximo paso, trabajar con foco y convertir el proceso en una historia que se
+pueda compartir. Combina gestión, memoria de trabajo y presentación pública en
+una única experiencia responsive, bilingüe e instalable.
+
+> La demo interactiva está disponible en `/demo` dentro de cualquier deployment
+> de Vercel. No requiere una cuenta y utiliza datos ficticios que no se guardan.
+
+## El problema
+
+Los proyectos personales suelen quedar repartidos entre listas, notas y
+repositorios. El resultado es mucha información, pero poca claridad sobre qué
+hacer a continuación. DevHub reúne ese contexto y lo convierte en acciones:
+
+- prioriza el siguiente paso;
+- muestra la salud y el progreso de cada proyecto;
+- conserva decisiones, avances y sesiones Focus;
+- transforma proyectos terminados en páginas públicas compartibles.
+
+## Recorrido visual
+
+### Un inicio centrado en avanzar
+
+![Dashboard de la demo de DevHub en modo oscuro](./docs/assets/devhub-demo-home.png)
+
+El resumen combina proyectos activos, trabajo pendiente, tiempo enfocado y una
+recomendación concreta para continuar.
+
+### Tareas claras en ambos temas
+
+![Vista de tareas de la demo de DevHub en modo claro](./docs/assets/devhub-demo-tasks.png)
+
+La demo permite recorrer proyectos, completar tareas y explorar ideas sin
+registrarse. También incluye tema claro/oscuro e interfaz en español e inglés.
+
+## Funcionalidades
+
+| Área | Capacidades |
+| --- | --- |
+| Proyectos | Estados, tecnologías, enlaces, tareas, progreso y Project Pulse |
+| Foco | Temporizador, objetivo diario, historial, resultados y próximo paso |
+| Memoria | Diario de desarrollo, decisiones técnicas y recuperación de contexto |
+| Ideas | Captura, evaluación y conversión en proyecto |
+| Presentación | Demo sin registro y páginas públicas por proyecto |
+| Personalización | Español/inglés, tema claro/oscuro y preferencias del espacio |
+| Plataforma | PWA instalable, responsive, estados offline y actualizaciones |
+| Cuenta | Autenticación, exportación, sesiones y eliminación de datos |
+
+## Arquitectura
+
+```mermaid
+flowchart LR
+  A["React + TypeScript"] --> B["Funciones RPC"]
+  B --> C["PostgreSQL + RLS"]
+  D["Supabase Auth"] --> A
+  A --> E["PWA y Service Worker"]
+  F["GitHub Actions"] --> G["Vercel"]
+  G --> A
+```
+
+El navegador no accede directamente a las tablas de negocio. Las operaciones
+se realizan mediante funciones SQL y las políticas RLS mantienen los datos
+aislados por usuario. Supabase Auth administra identidad y sesiones.
+
+## Stack
+
+- React 19, TypeScript y Vite.
+- React Router, TanStack Query y React Hook Form.
+- Zod para validación de formularios.
+- Supabase Auth, PostgreSQL, RPC y Row Level Security.
+- Vitest y Testing Library.
+- GitHub Actions, Dependabot y Vercel.
 
 ## Puesta en marcha
 
-1. Copia `.env.example` como `.env`.
-2. Completa la URL y la clave publica de tu proyecto de Supabase.
-3. Aplica en orden las migraciones disponibles en `supabase/migrations`.
-4. Instala las dependencias con `npm install`.
-5. Inicia la aplicacion con `npm run dev`.
+Necesitás Node.js 22 y un proyecto de Supabase.
 
-## Calidad
+```bash
+git clone https://github.com/JuanIgCuevas/dev-project-hub.git
+cd dev-project-hub
+npm install
+```
 
-Antes de compartir un cambio, ejecuta:
+1. Copiá `.env.example` como `.env`.
+2. Completá la URL y la clave pública de Supabase.
+3. Aplicá, en orden, las migraciones de `supabase/migrations`.
+4. Iniciá la aplicación:
+
+```bash
+npm run dev
+```
+
+Para probar la versión instalable y la demo como se verán en producción:
+
+```bash
+npm run build
+npm run preview
+```
+
+## Calidad y seguridad
 
 ```bash
 npm run check
 ```
 
-Este comando revisa el codigo, ejecuta las pruebas automaticas y genera el
-bundle de produccion. GitHub Actions repite los mismos controles en cada push
-y pull request dirigido a `Development` o `main`.
+Este comando ejecuta ESLint, las pruebas automáticas y la compilación de
+producción. GitHub Actions repite el control en pushes y pull requests hacia
+`Development` y `main`, y también audita las dependencias de producción.
 
-## Aplicacion instalable
+Vercel agrega Content Security Policy, protección contra iframes, restricciones
+de permisos y HTTPS estricto. Los enlaces externos se limitan a `http` y
+`https`. Consulta [SECURITY.md](./SECURITY.md) para reportar una vulnerabilidad
+de forma privada.
 
-El modo instalable se activa solamente en builds de produccion. Para probarlo
-localmente, ejecuta `npm run build` y luego `npm run preview`. El navegador
-mostrara la opcion de instalacion cuando el sitio cumpla sus condiciones. Las
-funciones que consultan Supabase siguen necesitando conexion a internet.
+> Las claves privadas nunca deben utilizar prefijos `VITE_` o `NEXT_PUBLIC_`:
+> esos valores forman parte del código que recibe el navegador.
 
-## Flujo de publicacion
+## Flujo de trabajo
 
-- `Development`: integracion y previews para revisar cambios.
-- `main`: version estable que Vercel publica en produccion.
-- Los cambios pasan primero por un pull request y por el control `Quality / Validate application`.
-- Vercel genera automaticamente una URL de preview para ramas que no sean la rama de produccion.
-- Las variables de Supabase deben configurarse por separado en los entornos Preview y Production de Vercel.
+- `Development`: integración y previews de revisión.
+- `main`: versión estable publicada en producción.
+- Dependabot propone actualizaciones en `Development`.
+- Vercel genera previews por rama y publica `main`.
 
-Configuracion recomendada en GitHub para `main`:
+## Material de presentación
 
-1. Requerir un pull request antes de integrar cambios.
-2. Requerir el control `Quality / Validate application` aprobado.
-3. Bloquear integraciones mientras la rama este desactualizada.
-
-## Acceso a datos
-
-El frontend no accede directamente a las tablas de PostgreSQL. Todas las
-lecturas y escrituras de datos de negocio deben implementarse como funciones
-SQL seguras y consumirse mediante `supabase.rpc(...)`.
-
-Las operaciones de identidad, sesiones, email y contrasena utilizan la API
-oficial de Supabase Auth. ESLint bloquea nuevas llamadas `supabase.from(...)`
-dentro del codigo fuente.
-
-## Seguridad
-
-- Vercel aplica CSP, proteccion contra iframes, politica de permisos y otras
-  cabeceras defensivas desde `vercel.json`.
-- Los enlaces de proyectos aceptan unicamente destinos `http` o `https`.
-- Las dependencias se revisan con Dependabot y `npm audit` en GitHub Actions.
-- Las claves privadas nunca deben declararse con prefijos `VITE_` o
-  `NEXT_PUBLIC_`, ya que esos valores se incluyen en el navegador.
-
-Consulta [SECURITY.md](./SECURITY.md) para reportar una vulnerabilidad de forma
-privada.
+- [Guion de demo de 3 minutos](./docs/DEMO_GUIDE.md)
+- [Caso de estudio para portfolio](./docs/CASE_STUDY.md)
+- [Política de seguridad](./SECURITY.md)
