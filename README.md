@@ -85,7 +85,7 @@ aislados por usuario. Supabase Auth administra identidad y sesiones.
 - React Router, TanStack Query y React Hook Form.
 - Zod para validación de formularios.
 - Supabase Auth, PostgreSQL, RPC y Row Level Security.
-- Vitest y Testing Library.
+- Vitest, Testing Library y axe-core para controles de accesibilidad.
 - GitHub Actions, Dependabot y Vercel.
 
 ## Puesta en marcha
@@ -120,7 +120,7 @@ npm run preview
 npm run check
 ```
 
-Este comando ejecuta ESLint, las pruebas automáticas y la compilación de
+Este comando ejecuta ESLint, las pruebas funcionales y de accesibilidad, y la compilación de
 producción. GitHub Actions repite el control en pushes y pull requests hacia
 `Development` y `main`, y también audita las dependencias de producción.
 
