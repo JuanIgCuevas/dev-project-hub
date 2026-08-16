@@ -32,17 +32,7 @@
     <meta name="twitter:description" content="Organizá tus proyectos, mantené el foco y convertí tus ideas en productos reales." />
     <meta name="twitter:image" content="__SITE_URL__/og-devhub.png" />
     <meta name="twitter:image:alt" content="DevHub, una plataforma para construir, enfocarse y publicar proyectos." />
-    <script>
-      (() => {
-        try {
-          const preference = localStorage.getItem('devhub-theme') || 'system'
-          const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-          const theme = preference === 'system' ? (systemDark ? 'dark' : 'light') : preference
-          document.documentElement.dataset.theme = theme
-          document.documentElement.style.colorScheme = theme
-        } catch { /* El proveedor de tema aplicará el valor al iniciar. */ }
-      })()
-    </script>
+    <script src="/theme-init.js"></script>
     <title>DevHub — Build. Focus. Ship.</title>
   </head>
   <body>

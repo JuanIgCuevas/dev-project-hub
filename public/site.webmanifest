@@ -2,10 +2,15 @@
   "name": "DevHub",
   "short_name": "DevHub",
   "description": "Organizá tus proyectos, mantené el foco y convertí tus ideas en productos reales.",
+  "id": "/",
   "start_url": "/",
+  "scope": "/",
+  "lang": "es-AR",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#07111c",
   "theme_color": "#b9f44b",
+  "categories": ["productivity", "developer tools"],
   "icons": [
     {
       "src": "/favicon.svg?v=3",
@@ -16,6 +21,22 @@
       "src": "/apple-touch-icon.png?v=3",
       "sizes": "180x180",
       "type": "image/png"
+    },
+    {
+      "src": "/pwa-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/pwa-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
     }
+  ],
+  "shortcuts": [
+    { "name": "Abrir mi espacio", "short_name": "Mi espacio", "url": "/dashboard", "icons": [{ "src": "/pwa-192.png", "sizes": "192x192" }] },
+    { "name": "Ver demo", "short_name": "Demo", "url": "/demo", "icons": [{ "src": "/pwa-192.png", "sizes": "192x192" }] }
   ]
 }

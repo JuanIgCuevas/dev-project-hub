@@ -1,0 +1,58 @@
+name: Quality
+
+on:
+  push:
+    branches:
+      - Development
+      - main
+  pull_request:
+    branches:
+      - Development
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate application
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Check code quality
+        run: npm run lint
+
+      - name: Run automated tests
+        run: npm test
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Store validated build
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: devhub-${{ github.sha }}
+          path: dist
+          if-no-files-found: error
+          retention-days: 7

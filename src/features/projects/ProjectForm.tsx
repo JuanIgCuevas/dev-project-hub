@@ -8,8 +8,9 @@ import { useAuth } from '../auth/AuthProvider'
 import { useCreateProject, useUpdateProject } from './projectApi'
 import type { Project, ProjectStatus } from '../../types/database'
 import { useToast } from '../feedback/toastContext'
+import { isSafeExternalUrl } from '../../lib/externalUrl'
 
-const optionalUrl = z.string().trim().refine(value => !value || z.url().safeParse(value).success, 'Ingresá una URL válida.')
+const optionalUrl = z.string().trim().refine(value => !value || isSafeExternalUrl(value), 'Usá una URL completa que comience con http:// o https://.')
 const projectSchema = z.object({
   name: z.string().trim().min(2, 'Ingresá al menos 2 caracteres.').max(100),
   description: z.string().trim().max(1000),

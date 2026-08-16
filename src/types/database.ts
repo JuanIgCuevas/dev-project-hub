@@ -12,6 +12,9 @@ export interface Project {
   technologies: string[]
   repository_url: string | null
   live_url: string | null
+  is_public: boolean
+  public_slug: string | null
+  published_at: string | null
   created_at: string
   updated_at: string
 }
