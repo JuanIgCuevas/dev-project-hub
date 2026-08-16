@@ -24,6 +24,7 @@ import type { ProjectStatus, Task, TaskStatus } from './types/database'
 import { EmptyState, PageSkeleton } from './components/UiStates'
 import { useToast } from './features/feedback/toastContext'
 import { PwaInstallCard, PwaStatusBanner } from './features/pwa/PwaExperience'
+import { safeExternalUrl } from './lib/externalUrl'
 
 const AuthPage = lazy(() => import('./features/auth/AuthPage').then(module => ({ default: module.AuthPage })))
 const ForgotPasswordPage = lazy(() => import('./features/auth/PasswordPages').then(module => ({ default: module.ForgotPasswordPage })))
@@ -230,6 +231,8 @@ function ProjectPage() {
   const total = project.tasks.length
   const progress = total ? Math.round(done / total * 100) : 0
   const status = projectStatus[project.status]
+  const liveUrl = safeExternalUrl(project.live_url)
+  const repositoryUrl = safeExternalUrl(project.repository_url)
   const sortedTasks = [...project.tasks].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
   const handleDelete = async () => {
     if (!window.confirm(`¿Eliminar “${project.name}”? También se eliminarán sus tareas.`)) return
@@ -259,7 +262,7 @@ function ProjectPage() {
     <Link className="back" to="/projects">← Volver a proyectos</Link>
     {deleteError && <div className="form-message error" role="alert">{deleteError}</div>}
     {taskError && <div className="form-message error" role="alert">{taskError}</div>}
-    <div className="project-title"><div><div className="title-row"><span className={`project-symbol ${status.tone}`}><Code2 /></span><div><span className={`badge ${status.tone}`}><i />{status.label}</span><h1 data-no-translate>{project.name}</h1></div></div><p data-no-translate={project.description ? true : undefined}>{project.description || 'Sin descripción todavía.'}</p></div><div className="project-actions">{project.live_url && <a className="button" href={project.live_url} target="_blank" rel="noreferrer"><ExternalLink size={18} /> Ver sitio</a>}{project.repository_url && <a className="button" href={project.repository_url} target="_blank" rel="noreferrer"><Github size={18} /> Repositorio</a>}<Link className="button" to={`/projects/${project.id}/edit`}><Pencil size={17} /> Editar</Link><button className="button danger" onClick={handleDelete} disabled={deleteProject.isPending}><Trash2 size={17} /> {deleteProject.isPending ? 'Eliminando...' : 'Eliminar'}</button></div></div>
+    <div className="project-title"><div><div className="title-row"><span className={`project-symbol ${status.tone}`}><Code2 /></span><div><span className={`badge ${status.tone}`}><i />{status.label}</span><h1 data-no-translate>{project.name}</h1></div></div><p data-no-translate={project.description ? true : undefined}>{project.description || 'Sin descripción todavía.'}</p></div><div className="project-actions">{liveUrl && <a className="button" href={liveUrl} target="_blank" rel="noopener noreferrer"><ExternalLink size={18} /> Ver sitio</a>}{repositoryUrl && <a className="button" href={repositoryUrl} target="_blank" rel="noopener noreferrer"><Github size={18} /> Repositorio</a>}<Link className="button" to={`/projects/${project.id}/edit`}><Pencil size={17} /> Editar</Link><button className="button danger" onClick={handleDelete} disabled={deleteProject.isPending}><Trash2 size={17} /> {deleteProject.isPending ? 'Eliminando...' : 'Eliminar'}</button></div></div>
     <ProjectRevivalMemory project={project} />
     <ProjectSharePanel project={project} />
     <div className="project-layout"><section>

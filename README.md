@@ -66,3 +66,15 @@ SQL seguras y consumirse mediante `supabase.rpc(...)`.
 Las operaciones de identidad, sesiones, email y contrasena utilizan la API
 oficial de Supabase Auth. ESLint bloquea nuevas llamadas `supabase.from(...)`
 dentro del codigo fuente.
+
+## Seguridad
+
+- Vercel aplica CSP, proteccion contra iframes, politica de permisos y otras
+  cabeceras defensivas desde `vercel.json`.
+- Los enlaces de proyectos aceptan unicamente destinos `http` o `https`.
+- Las dependencias se revisan con Dependabot y `npm audit` en GitHub Actions.
+- Las claves privadas nunca deben declararse con prefijos `VITE_` o
+  `NEXT_PUBLIC_`, ya que esos valores se incluyen en el navegador.
+
+Consulta [SECURITY.md](./SECURITY.md) para reportar una vulnerabilidad de forma
+privada.
