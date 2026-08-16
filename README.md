@@ -9,6 +9,12 @@
 </p>
 
 <p align="center">
+  <a href="https://dev-project-hub.vercel.app/demo"><strong>Ver demo interactiva</strong></a>
+  ·
+  <a href="https://dev-project-hub.vercel.app/login">Abrir DevHub</a>
+</p>
+
+<p align="center">
   <a href="https://github.com/JuanIgCuevas/dev-project-hub/actions/workflows/quality.yml"><img src="https://github.com/JuanIgCuevas/dev-project-hub/actions/workflows/quality.yml/badge.svg?branch=Development" alt="Quality" /></a>
   <img src="https://img.shields.io/badge/React-19-61dafb?logo=react&logoColor=101820" alt="React 19" />
   <img src="https://img.shields.io/badge/TypeScript-5-3178c6?logo=typescript&logoColor=white" alt="TypeScript 5" />
@@ -20,8 +26,9 @@ próximo paso, trabajar con foco y convertir el proceso en una historia que se
 pueda compartir. Combina gestión, memoria de trabajo y presentación pública en
 una única experiencia responsive, bilingüe e instalable.
 
-> La demo interactiva está disponible en `/demo` dentro de cualquier deployment
-> de Vercel. No requiere una cuenta y utiliza datos ficticios que no se guardan.
+> La [demo interactiva](https://dev-project-hub.vercel.app/demo) no requiere una
+> cuenta y utiliza datos ficticios que no se guardan. El enlace quedará activo
+> en producción al integrar `Development` en `main`.
 
 ## El problema
 

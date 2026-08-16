@@ -68,6 +68,8 @@ cuenta creada específicamente para esa verificación.
 - [ ] Confirmar que el deployment de producción de Vercel finalice correctamente.
 - [ ] Repetir en producción el recorrido sin sesión, el inicio de sesión y una
       operación de escritura sencilla.
+- [ ] Confirmar que `https://dev-project-hub.vercel.app/demo` abra la demo y no
+      redirija a la pantalla de acceso.
 
 ## 7. Cierre y recuperación
 
