@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { AlertTriangle, ArrowRight, Check, Circle, Eye, EyeOff, Languages, Sparkles } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Check, Circle, Eye, EyeOff, Languages, Play, Sparkles } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
@@ -101,6 +101,7 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
       {!isLogin && <><div className={`password-strength strength-${Math.min(passwordScore, 4)}`}><div><span>Seguridad</span><strong>{password ? strength : 'Sin contraseña'}</strong></div><div className="strength-bars" aria-hidden="true"><i /><i /><i /><i /></div><ul>{passwordChecks.map(check => <li className={check.valid ? 'valid' : ''} key={check.label}>{check.valid ? <Check /> : <Circle />}{check.label}{!check.required && <em>recomendado</em>}</li>)}</ul></div><label>Confirmar contraseña<div className={`password-field ${passwordsMismatch ? 'field-invalid' : ''}`}><input type={showConfirmation ? 'text' : 'password'} autoComplete="new-password" aria-invalid={passwordsMismatch || Boolean(errors.passwordConfirmation)} {...confirmationRegistration} onKeyUp={event => setCapsLock(event.getModifierState('CapsLock'))} onBlur={event => { confirmationRegistration.onBlur(event); setCapsLock(false) }} placeholder="Volvé a escribirla" /><button type="button" onClick={() => setShowConfirmation(current => !current)} aria-label={showConfirmation ? 'Ocultar confirmación' : 'Mostrar confirmación'} aria-pressed={showConfirmation}>{showConfirmation ? <EyeOff /> : <Eye />}</button></div><small className={passwordConfirmation && !passwordsMismatch ? 'field-success' : ''} aria-live="polite">{errors.passwordConfirmation?.message || (passwordsMismatch ? 'Las contraseñas no coinciden.' : passwordConfirmation ? 'Las contraseñas coinciden.' : '')}</small></label></>}
       {serverError && <div className="form-message error" role="alert">{serverError}</div>}{notice && <div className="form-message success" role="status">{notice}</div>}
       <button className="button primary wide" disabled={isSubmitting || passwordsMismatch} type="submit">{isSubmitting ? 'Procesando...' : isLogin ? 'Iniciar sesión' : 'Crear cuenta'} {!isSubmitting && <ArrowRight size={18} />}</button>
+      {isLogin && <Link className="auth-demo-link" to="/demo"><Play size={16} /> Ver demo interactiva <ArrowRight size={15} /></Link>}
       <p className="auth-switch">{isLogin ? '¿No tienes cuenta?' : '¿Ya tienes cuenta?'} <Link to={isLogin ? '/register' : '/login'}>{isLogin ? 'Crea una gratis' : 'Inicia sesión'}</Link></p>
     </form></div></div>
 }
