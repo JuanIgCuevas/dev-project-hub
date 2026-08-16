@@ -8,11 +8,14 @@ import { ThemeProvider } from './features/theme/ThemeProvider'
 import { PreferencesProvider } from './features/preferences/PreferencesProvider'
 import { FocusProvider } from './features/focus/FocusProvider'
 import { ToastProvider } from './features/feedback/ToastProvider'
+import { registerPwa } from './features/pwa/pwaManager'
 import './styles.css'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
 })
+
+registerPwa()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

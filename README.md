@@ -14,6 +14,7 @@ Plataforma para que desarrolladores independientes organicen, gestionen y hagan 
 - Paginas publicas para compartir proyectos terminados.
 - Interfaz en espanol e ingles, con tema claro y oscuro.
 - Historial de sesiones Focus, decisiones tecnicas y memoria de avances.
+- Aplicacion web instalable con aviso de conexion y acceso al contenido ya cargado.
 
 ## Puesta en marcha
 
@@ -34,6 +35,13 @@ npm run check
 Este comando revisa el codigo, ejecuta las pruebas automaticas y genera el
 bundle de produccion. GitHub Actions repite los mismos controles en cada push
 y pull request dirigido a `Development` o `main`.
+
+## Aplicacion instalable
+
+El modo instalable se activa solamente en builds de produccion. Para probarlo
+localmente, ejecuta `npm run build` y luego `npm run preview`. El navegador
+mostrara la opcion de instalacion cuando el sitio cumpla sus condiciones. Las
+funciones que consultan Supabase siguen necesitando conexion a internet.
 
 ## Flujo de publicacion
 
