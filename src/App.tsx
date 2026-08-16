@@ -1,18 +1,12 @@
 import { Activity, ArrowRight, Bot, CalendarDays, CheckCircle2, Clock3, Code2, Columns3, Database, Download, ExternalLink, FolderKanban, Github, GripVertical, KeyRound, Languages, Laptop, LayoutDashboard, Lightbulb, ListTodo, LogOut, Moon, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Rocket, Rows3, Save, Search, Settings as SettingsIcon, ShieldCheck, SlidersHorizontal, Sparkles, Sun, Timer, Trash2, UserRound } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { AuthPage } from './features/auth/AuthPage'
 import { AssistantWidget } from './features/assistant/AssistantWidget'
 import { useAuth } from './features/auth/AuthProvider'
-import { ForgotPasswordPage, ResetPasswordPage } from './features/auth/PasswordPages'
-import { ProjectForm } from './features/projects/ProjectForm'
-import { IdeasPage } from './features/ideas/IdeasPage'
 import { useDeleteProject, useProject, useProjects } from './features/projects/projectApi'
 import { FocusPanel } from './features/projects/FocusPanel'
 import { getProjectPulse } from './features/projects/projectHealth'
-import { ProjectIntelligencePanel } from './features/projects/ProjectIntelligencePanel'
 import { FocusSessionDock } from './features/focus/FocusSessionDock'
-import { FocusHistoryPanel } from './features/focus/FocusHistoryPanel'
 import { FocusDailyGoal } from './features/focus/FocusDailyGoal'
 import { useMyFocusSessions } from './features/focus/focusApi'
 import { TaskForm } from './features/tasks/TaskForm'
@@ -27,6 +21,16 @@ import { onboardingStorageKey } from './features/onboarding/onboardingStorage'
 import { ProjectRevivalMemory } from './features/revival/ProjectRevivalMemory'
 import { RevivalDashboard } from './features/revival/RevivalDashboard'
 import type { ProjectStatus, Task, TaskStatus } from './types/database'
+import { EmptyState, PageSkeleton } from './components/UiStates'
+import { useToast } from './features/feedback/toastContext'
+
+const AuthPage = lazy(() => import('./features/auth/AuthPage').then(module => ({ default: module.AuthPage })))
+const ForgotPasswordPage = lazy(() => import('./features/auth/PasswordPages').then(module => ({ default: module.ForgotPasswordPage })))
+const ResetPasswordPage = lazy(() => import('./features/auth/PasswordPages').then(module => ({ default: module.ResetPasswordPage })))
+const IdeasPage = lazy(() => import('./features/ideas/IdeasPage').then(module => ({ default: module.IdeasPage })))
+const ProjectForm = lazy(() => import('./features/projects/ProjectForm').then(module => ({ default: module.ProjectForm })))
+const ProjectIntelligencePanel = lazy(() => import('./features/projects/ProjectIntelligencePanel').then(module => ({ default: module.ProjectIntelligencePanel })))
+const FocusHistoryPanel = lazy(() => import('./features/focus/FocusHistoryPanel').then(module => ({ default: module.FocusHistoryPanel })))
 
 const projectStatus: Record<ProjectStatus, { label: string; tone: string }> = {
   idea: { label: 'Idea', tone: 'violet' },
@@ -70,11 +74,11 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
   return <aside className="sidebar">
     <div className="sidebar-header"><Brand /><button className="sidebar-toggle" type="button" onClick={onToggle} aria-label={collapsed ? 'Abrir barra lateral' : 'Cerrar barra lateral'} title={collapsed ? 'Abrir barra lateral' : 'Cerrar barra lateral'}>{collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}</button></div>
     <nav>
-      <Link className={`nav-link ${location.pathname === '/dashboard' ? 'active' : ''}`} to="/dashboard" title="Inicio"><LayoutDashboard size={18} /><span className="nav-label">Inicio</span></Link>
-      <Link className={`nav-link ${projectsActive ? 'active' : ''}`} to="/projects" title="Proyectos"><FolderKanban size={18} /><span className="nav-label">Proyectos</span></Link>
-      <Link className={`nav-link ${location.pathname === '/tasks' ? 'active' : ''}`} to="/tasks" title="Mis tareas"><ListTodo size={18} /><span className="nav-label">Tareas</span></Link>
-      <Link className={`nav-link ${location.pathname === '/ideas' ? 'active' : ''}`} to="/ideas" title="Ideas"><Lightbulb size={18} /><span className="nav-label">Ideas</span></Link>
-      <Link className={`nav-link mobile-settings-link ${location.pathname === '/settings' ? 'active' : ''}`} to="/settings" aria-label="Configuración"><SettingsIcon size={18} /><span className="nav-label">Ajustes</span></Link>
+      <Link className={`nav-link ${location.pathname === '/dashboard' ? 'active' : ''}`} to="/dashboard" title="Inicio" aria-current={location.pathname === '/dashboard' ? 'page' : undefined}><LayoutDashboard size={18} /><span className="nav-label">Inicio</span></Link>
+      <Link className={`nav-link ${projectsActive ? 'active' : ''}`} to="/projects" title="Proyectos" aria-current={projectsActive ? 'page' : undefined}><FolderKanban size={18} /><span className="nav-label">Proyectos</span></Link>
+      <Link className={`nav-link ${location.pathname === '/tasks' ? 'active' : ''}`} to="/tasks" title="Mis tareas" aria-current={location.pathname === '/tasks' ? 'page' : undefined}><ListTodo size={18} /><span className="nav-label">Tareas</span></Link>
+      <Link className={`nav-link ${location.pathname === '/ideas' ? 'active' : ''}`} to="/ideas" title="Ideas" aria-current={location.pathname === '/ideas' ? 'page' : undefined}><Lightbulb size={18} /><span className="nav-label">Ideas</span></Link>
+      <Link className={`nav-link mobile-settings-link ${location.pathname === '/settings' ? 'active' : ''}`} to="/settings" aria-label="Configuración" aria-current={location.pathname === '/settings' ? 'page' : undefined}><SettingsIcon size={18} /><span className="nav-label">Ajustes</span></Link>
       <button className="nav-link mobile-theme-toggle" type="button" onClick={toggleTheme}>{theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}<span className="nav-label">{theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}</span></button>
       <button className="nav-link mobile-logout" type="button" onClick={handleSignOut}><LogOut size={18} /><span className="nav-label">Salir</span></button>
     </nav>
@@ -99,7 +103,7 @@ function Shell({ children }: { children: React.ReactNode }) {
     if (user) localStorage.setItem(onboardingStorageKey(user.id), 'true')
     setShowOnboarding(false)
   }
-  return <div className={`app-shell ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}><Sidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} /><main className="main">{children}</main><FocusSessionDock />{preferences.assistantEnabled && <AssistantWidget />}{showOnboarding && <OnboardingTour onFinish={finishOnboarding} />}</div>
+  return <div className={`app-shell ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}><a className="skip-link" href="#main-content">Saltar al contenido principal</a><Sidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} /><main className="main" id="main-content" tabIndex={-1}>{children}</main><FocusSessionDock />{preferences.assistantEnabled && <AssistantWidget />}{showOnboarding && <OnboardingTour onFinish={finishOnboarding} />}</div>
 }
 
 function Dashboard() {
@@ -177,7 +181,7 @@ function ProjectsPage() {
       <article><span className="stat-icon violet"><CheckCircle2 /></span><div><strong>{completedTasks}</strong><p>Tareas completadas</p></div></article>
     </section>
     <section className="section-head projects-section-head"><div><h2>Todos tus proyectos</h2><p>{visibleProjects.length} {visibleProjects.length === 1 ? 'proyecto visible' : 'proyectos visibles'}.</p></div><label className="search"><Search size={17} /><input aria-label="Buscar proyectos" value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar proyecto..." /></label></section>
-    {isLoading && <div className="content-state"><span className="mini-loader" /><p>Cargando proyectos...</p></div>}
+    {isLoading && <PageSkeleton label="Cargando proyectos..." />}
     {error && <div className="content-state error-state"><p>No pudimos cargar tus proyectos.</p></div>}
     <section className="project-grid projects-page-grid">
       {visibleProjects.map(project => {
@@ -196,6 +200,7 @@ function ProjectsPage() {
         </Link>
       })}
       {!isLoading && !error && search && visibleProjects.length === 0 && <div className="empty-search"><p>No encontramos proyectos con “{search}”.</p></div>}
+      {!isLoading && !error && !search && projects.length === 0 && <EmptyState title="Tu primer proyecto empieza acá" description="Creá un espacio para organizar tareas, decisiones y avances." action={<Link className="button primary" to="/projects/new">Crear proyecto</Link>} />}
       <Link to="/projects/new" className="new-card"><span><Plus /></span><strong>Crear nuevo proyecto</strong><p>Convertí esa idea en algo real.</p></Link>
     </section>
   </div></Shell>
@@ -208,13 +213,14 @@ function ProjectPage() {
   const navigate = useNavigate()
   const { data: project, isLoading, error } = useProject(projectId)
   const deleteProject = useDeleteProject()
+  const { showToast } = useToast()
   const deleteTask = useDeleteTask()
   const updateTaskStatus = useUpdateTaskStatus()
   const [deleteError, setDeleteError] = useState('')
   const [taskError, setTaskError] = useState('')
   const [taskFormOpen, setTaskFormOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | undefined>()
-  if (isLoading) return <Shell><div className="content-state page-state"><span className="mini-loader" /><p>Cargando proyecto...</p></div></Shell>
+  if (isLoading) return <Shell><div className="page-wrap"><PageSkeleton variant="detail" label="Cargando proyecto..." /></div></Shell>
   if (error || !project) return <Shell><div className="content-state page-state error-state"><p>El proyecto no existe o no tenés acceso.</p><Link className="button" to="/projects">Volver a proyectos</Link></div></Shell>
   const done = project.tasks.filter(task => task.status === 'done').length
   const total = project.tasks.length
@@ -226,6 +232,7 @@ function ProjectPage() {
     setDeleteError('')
     try {
       await deleteProject.mutateAsync(project.id)
+      showToast('Proyecto eliminado correctamente.')
       navigate('/projects', { replace: true })
     } catch {
       setDeleteError('No pudimos eliminar el proyecto. Intentá nuevamente.')
@@ -235,13 +242,13 @@ function ProjectPage() {
   const closeTaskForm = () => { setTaskFormOpen(false); setEditingTask(undefined) }
   const handleTaskStatus = async (task: Task, nextStatus: TaskStatus) => {
     setTaskError('')
-    try { await updateTaskStatus.mutateAsync({ id: task.id, status: nextStatus }) }
+    try { await updateTaskStatus.mutateAsync({ id: task.id, status: nextStatus }); showToast('Estado de la tarea actualizado.') }
     catch { setTaskError('No pudimos cambiar el estado de la tarea.') }
   }
   const handleDeleteTask = async (task: Task) => {
     if (!window.confirm(`¿Eliminar la tarea “${task.title}”?`)) return
     setTaskError('')
-    try { await deleteTask.mutateAsync(task.id) }
+    try { await deleteTask.mutateAsync(task.id); showToast('Tarea eliminada correctamente.') }
     catch { setTaskError('No pudimos eliminar la tarea.') }
   }
   return <Shell><div className="page-wrap">
@@ -267,13 +274,14 @@ function ProjectPage() {
 function ProjectEditorPage({ mode }: { mode: 'create' | 'edit' }) {
   const { projectId } = useParams()
   const { data: project, isLoading, error } = useProject(mode === 'edit' ? projectId : undefined)
-  if (mode === 'edit' && isLoading) return <Shell><div className="content-state page-state"><span className="mini-loader" /><p>Cargando proyecto...</p></div></Shell>
+  if (mode === 'edit' && isLoading) return <Shell><div className="form-page"><PageSkeleton variant="detail" label="Cargando proyecto..." /></div></Shell>
   if (mode === 'edit' && (error || !project)) return <Shell><div className="content-state page-state error-state"><p>No pudimos encontrar el proyecto.</p><Link className="button" to="/projects">Volver</Link></div></Shell>
   return <Shell><div className="form-page"><Link className="back" to={project ? `/projects/${project.id}` : '/projects'}>← Cancelar y volver</Link><div className="form-heading"><span className="stat-icon blue"><Sparkles /></span><div><h1>{project ? 'Editar proyecto' : 'Nuevo proyecto'}</h1><p>{project ? 'Actualizá la información principal.' : 'Dale un hogar a tu próxima gran idea.'}</p></div></div><ProjectForm project={project} /></div></Shell>
 }
 
 function MyTasksPage() {
   const { preferences } = usePreferences()
+  const { showToast } = useToast()
   const locale = preferences.language === 'en' ? 'en-US' : 'es-AR'
   const [searchParams] = useSearchParams()
   const { data: tasks = [], isLoading, error } = useMyTasks()
@@ -304,13 +312,13 @@ function MyTasksPage() {
 
   const changeStatus = async (task: TaskOverview, status: TaskStatus) => {
     setTaskError('')
-    try { await updateTaskStatus.mutateAsync({ id: task.id, status }) }
+    try { await updateTaskStatus.mutateAsync({ id: task.id, status }); showToast('Estado de la tarea actualizado.') }
     catch { setTaskError('No pudimos cambiar el estado de la tarea.') }
   }
   const removeTask = async (task: TaskOverview) => {
     if (!window.confirm(`¿Eliminar la tarea “${task.title}”?`)) return
     setTaskError('')
-    try { await deleteTask.mutateAsync(task.id) }
+    try { await deleteTask.mutateAsync(task.id); showToast('Tarea eliminada correctamente.') }
     catch { setTaskError('No pudimos eliminar la tarea.') }
   }
   const dropTask = async (status: TaskStatus) => {
@@ -323,11 +331,15 @@ function MyTasksPage() {
   return <Shell><div className="tasks-page"><header className="tasks-heading"><div><p className="eyebrow">TU TRABAJO</p><h1>Mis tareas</h1><p>Todo lo pendiente, sin importar en qué proyecto esté.</p></div><div className="tasks-header-actions"><div className="view-toggle" aria-label="Cambiar vista"><button className={viewMode === 'list' ? 'active' : ''} onClick={() => setViewMode('list')} title="Vista lista"><Rows3 size={17} /> Lista</button><button className={viewMode === 'kanban' ? 'active' : ''} onClick={() => setViewMode('kanban')} title="Vista Kanban"><Columns3 size={17} /> Kanban</button></div><Link className="button primary" to="/projects"><FolderKanban size={17} /> Ver proyectos</Link></div></header>
     <section className="stats task-stats"><article><span className="stat-icon blue"><ListTodo /></span><div><strong>{projectTasks.filter(task => task.status === 'todo').length}</strong><p>Pendientes</p></div></article><article><span className="stat-icon green"><Rocket /></span><div><strong>{projectTasks.filter(task => task.status === 'in_progress').length}</strong><p>En progreso</p></div></article><article><span className="stat-icon violet"><CheckCircle2 /></span><div><strong>{projectTasks.filter(task => task.status === 'done').length}</strong><p>Completadas</p></div></article></section>
     <section className={`task-filters ${viewMode === 'kanban' ? 'kanban-filters' : ''}`}><label className="search"><Search size={17} /><input aria-label="Buscar tareas" value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar tarea..." /></label><select aria-label="Filtrar por proyecto" value={projectFilter} onChange={event => setProjectFilter(event.target.value)}><option value="all">Todos los proyectos</option>{projectOptions.map(project => <option value={project.id} key={project.id}>{project.name}</option>)}</select>{viewMode === 'list' && <select aria-label="Filtrar por estado" value={statusFilter} onChange={event => setStatusFilter(event.target.value as typeof statusFilter)}><option value="all">Todos los estados</option><option value="todo">Pendientes</option><option value="in_progress">En progreso</option><option value="done">Completadas</option></select>}<select aria-label="Filtrar por prioridad" value={priorityFilter} onChange={event => setPriorityFilter(event.target.value as typeof priorityFilter)}><option value="all">Todas las prioridades</option><option value="high">Alta</option><option value="medium">Media</option><option value="low">Baja</option></select></section>
-    {taskError && <div className="form-message error" role="alert">{taskError}</div>}{isLoading && <div className="content-state"><span className="mini-loader" /><p>Cargando tareas...</p></div>}{error && <div className="content-state error-state"><p>No pudimos cargar tus tareas.</p></div>}
+    {taskError && <div className="form-message error" role="alert">{taskError}</div>}{isLoading && <PageSkeleton variant="list" label="Cargando tareas..." />}{error && <div className="content-state error-state"><p>No pudimos cargar tus tareas.</p></div>}
     {!isLoading && !error && viewMode === 'list' && <section className="all-tasks-panel">{groupedTasks.length ? groupedTasks.map(project => <section className="project-task-group" key={project.id}><header className="project-task-heading"><div><span><FolderKanban size={17} /></span><div><h2 data-no-translate>{project.name}</h2><p>{project.tasks.length} {project.tasks.length === 1 ? 'tarea' : 'tareas'}</p></div></div><Link to={`/projects/${project.id}`}>Ver proyecto <ArrowRight size={14} /></Link></header>{project.tasks.map(task => <article className="global-task" key={task.id}><button className={task.status === 'done' ? 'task-check checked' : 'task-check'} onClick={() => changeStatus(task, task.status === 'done' ? 'todo' : 'done')} aria-label={task.status === 'done' ? `Reabrir ${task.title}` : `Completar ${task.title}`}>{task.status === 'done' && '✓'}</button><div className="global-task-main"><strong className={task.status === 'done' ? 'completed-title' : ''}>{task.title}</strong><div>{task.due_date && <span className={new Date(`${task.due_date}T23:59:59`) < new Date() && task.status !== 'done' ? 'overdue' : ''}><CalendarDays size={12} /> {new Intl.DateTimeFormat(locale).format(new Date(`${task.due_date}T12:00:00`))}</span>}</div></div><select className={`task-status status-${task.status}`} value={task.status} onChange={event => changeStatus(task, event.target.value as TaskStatus)}><option value="todo">Pendiente</option><option value="in_progress">En progreso</option><option value="done">Completada</option></select><span className={`priority ${task.priority === 'high' ? 'alta' : task.priority === 'low' ? 'baja' : 'media'}`}>{task.priority === 'high' ? 'Alta' : task.priority === 'low' ? 'Baja' : 'Media'}</span><div className="task-actions"><button className="icon-button" onClick={() => setEditingTask(task)} aria-label={`Editar ${task.title}`}><Pencil /></button><button className="icon-button danger-icon" onClick={() => removeTask(task)} aria-label={`Eliminar ${task.title}`}><Trash2 /></button></div></article>)}</section>) : <div className="empty-tasks"><ListTodo /><p>No hay tareas que coincidan con los filtros.</p>{tasks.length === 0 && <Link className="button small" to="/projects">Crear una desde un proyecto</Link>}</div>}</section>}
     {!isLoading && !error && viewMode === 'kanban' && <section className="kanban-board">{taskColumns.map(column => { const columnTasks = visibleTasks.filter(task => task.status === column.status); return <div className={`kanban-column ${dropTarget === column.status ? 'drop-target' : ''}`} key={column.status} onDragOver={event => { event.preventDefault(); setDropTarget(column.status) }} onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDropTarget(null) }} onDrop={event => { event.preventDefault(); dropTask(column.status) }}><header><div><i className={`column-dot ${column.status}`} /><h2>{column.label}</h2></div><span>{columnTasks.length}</span></header><div className="kanban-stack">{columnTasks.map(task => <article className={`kanban-card ${draggingTaskId === task.id ? 'dragging' : ''}`} draggable onDragStart={event => { event.dataTransfer.effectAllowed = 'move'; setDraggingTaskId(task.id) }} onDragEnd={() => { setDraggingTaskId(null); setDropTarget(null) }} key={task.id}><div className="kanban-card-top"><GripVertical size={16} /><span className={`priority ${task.priority === 'high' ? 'alta' : task.priority === 'low' ? 'baja' : 'media'}`}>{task.priority === 'high' ? 'Alta' : task.priority === 'low' ? 'Baja' : 'Media'}</span></div><strong className={task.status === 'done' ? 'completed-title' : ''}>{task.title}</strong><Link data-no-translate className="kanban-project" to={`/projects/${task.project_id}`}><FolderKanban size={12} />{task.project_name}</Link>{task.due_date && <span className={`kanban-date ${new Date(`${task.due_date}T23:59:59`) < new Date() && task.status !== 'done' ? 'overdue' : ''}`}><CalendarDays size={12} /> {new Intl.DateTimeFormat(locale).format(new Date(`${task.due_date}T12:00:00`))}</span>}<div className="kanban-card-footer"><select value={task.status} onChange={event => changeStatus(task, event.target.value as TaskStatus)} aria-label={`Mover ${task.title}`}><option value="todo">Pendiente</option><option value="in_progress">En progreso</option><option value="done">Completada</option></select><div className="task-actions"><button className="icon-button" onClick={() => setEditingTask(task)} aria-label={`Editar ${task.title}`}><Pencil /></button><button className="icon-button danger-icon" onClick={() => removeTask(task)} aria-label={`Eliminar ${task.title}`}><Trash2 /></button></div></div></article>)}{columnTasks.length === 0 && <div className="kanban-empty">Soltá una tarea acá</div>}</div></div>})}</section>}
     {editingTask && <TaskForm projectId={editingTask.project_id} task={editingTask} onClose={() => setEditingTask(undefined)} />}
   </div></Shell>
+}
+
+function ThemePreview({ mode }: { mode: 'light' | 'dark' | 'system' }) {
+  return <span className={`theme-preview ${mode}-preview`} aria-hidden="true"><i className="preview-sidebar" /><span className="preview-content"><i className="preview-heading" /><i className="preview-card" /><i className="preview-card" /></span><i className="preview-action" /></span>
 }
 
 function SettingsPage() {
@@ -336,6 +348,7 @@ function SettingsPage() {
   const navigate = useNavigate()
   const { theme, preference, setTheme } = useTheme()
   const { preferences, updatePreference } = usePreferences()
+  const { showToast } = useToast()
   const [username, setUsername] = useState(user?.user_metadata.username || '')
   const [email, setEmail] = useState(user?.email || '')
   const [newPassword, setNewPassword] = useState('')
@@ -369,6 +382,7 @@ function SettingsPage() {
         await updateEmail(email)
         setProfileMessage('Datos guardados. Confirmá el nuevo email desde el mensaje que te enviamos.')
       } else setProfileMessage('Tus datos se guardaron correctamente.')
+      showToast('Preferencias guardadas correctamente.')
     } catch (caught) { setError(caught instanceof Error ? caught.message : 'No pudimos guardar los cambios.') }
     finally { setSavingProfile(false) }
   }
@@ -378,7 +392,7 @@ function SettingsPage() {
     if (newPassword.length < 8) { setError('La contraseña debe tener al menos 8 caracteres.'); return }
     if (newPassword !== confirmation) { setError('Las contraseñas no coinciden.'); return }
     setSavingPassword(true)
-    try { await updatePassword(newPassword); setNewPassword(''); setConfirmation(''); setPasswordMessage('Tu contraseña se actualizó correctamente.') }
+    try { await updatePassword(newPassword); setNewPassword(''); setConfirmation(''); setPasswordMessage('Tu contraseña se actualizó correctamente.'); showToast('Contraseña actualizada correctamente.') }
     catch { setError('No pudimos actualizar la contraseña. Volvé a iniciar sesión o usá la recuperación por email.') }
     finally { setSavingPassword(false) }
   }
@@ -395,6 +409,7 @@ function SettingsPage() {
       anchor.download = `devhub-export-${new Date().toISOString().slice(0, 10)}.json`
       anchor.click()
       URL.revokeObjectURL(url)
+      showToast('Exportación preparada correctamente.')
     } catch { setError('No pudimos exportar tus datos.') }
     finally { setExporting(false) }
   }
@@ -439,7 +454,7 @@ function SettingsPage() {
       <div className="settings-section-heading settings-wide"><span><SlidersHorizontal /></span><div><p className="eyebrow">EXPERIENCIA</p><h2>Cómo funciona tu espacio</h2><small>Apariencia, navegación, Focus y asistencia.</small></div></div>
       <section className="settings-card settings-wide language-settings-card"><div className="settings-card-title"><span><Languages /></span><div><h2>Idioma</h2><p>Elegí el idioma de toda la interfaz.</p></div></div><label>Idioma de la aplicación<select value={preferences.language} onChange={event => updatePreference('language', event.target.value as typeof preferences.language)}><option value="es">Español</option><option value="en">English</option></select></label></section>
       <section className="settings-card settings-wide focus-settings-card"><div className="settings-card-title"><span><Timer /></span><div><h2>Preferencias Focus</h2><p>Personalizá cómo empiezan, terminan y se muestran tus sesiones.</p></div></div><div className="focus-settings-selects"><label>Duración predeterminada<select value={preferences.focusDefaultMinutes} onChange={event => updatePreference('focusDefaultMinutes', Number(event.target.value))}><option value={25}>25 minutos</option><option value={30}>30 minutos</option><option value={45}>45 minutos</option><option value={60}>1 hora</option><option value={90}>1 hora 30</option><option value={120}>2 horas</option></select><small>Se seleccionará automáticamente al preparar un nuevo Focus.</small></label><label>Posición del temporizador<select value={preferences.focusTimerPosition} onChange={event => updatePreference('focusTimerPosition', event.target.value as typeof preferences.focusTimerPosition)}><option value="top-right">Arriba a la derecha</option><option value="top-left">Arriba a la izquierda</option><option value="bottom-left">Abajo a la izquierda</option></select><small>Podés elegir el lugar que menos interfiera con tu trabajo.</small></label><label>Objetivo diario<select value={preferences.focusDailyGoalMinutes} onChange={event => updatePreference('focusDailyGoalMinutes', Number(event.target.value))}><option value={30}>30 minutos</option><option value={60}>1 hora</option><option value={90}>1 hora 30</option><option value={120}>2 horas</option><option value={180}>3 horas</option><option value={240}>4 horas</option></select><small>El asistente usará esta meta para interpretar tu ritmo diario.</small></label></div><div className="settings-switches focus-settings-switches"><label className="setting-switch-row"><div><strong>Iniciar minimizado</strong><small>Las nuevas sesiones mostrarán únicamente el tiempo restante.</small></div><input type="checkbox" checked={preferences.focusStartMinimized} onChange={event => updatePreference('focusStartMinimized', event.target.checked)} /><i /></label><label className="setting-switch-row"><div><strong>Sonido al finalizar</strong><small>Reproduce un aviso breve cuando el contador llega a cero.</small></div><input type="checkbox" checked={preferences.focusSoundEnabled} onChange={event => updatePreference('focusSoundEnabled', event.target.checked)} /><i /></label><label className="setting-switch-row"><div><strong>Confirmar antes de descartar</strong><small>Evita perder accidentalmente una sesión que todavía no guardaste.</small></div><input type="checkbox" checked={preferences.focusConfirmDiscard} onChange={event => updatePreference('focusConfirmDiscard', event.target.checked)} /><i /></label><label className="setting-switch-row"><div><strong>Usar historial en el asistente</strong><small>Permite recomendaciones basadas en tiempos, resultados y próximos pasos.</small></div><input type="checkbox" checked={preferences.assistantUseFocusHistory} disabled={!preferences.assistantEnabled} onChange={event => updatePreference('assistantUseFocusHistory', event.target.checked)} /><i /></label></div></section>
-      <section className="settings-card settings-wide"><div className="settings-card-title"><span>{preference === 'system' ? <Laptop /> : theme === 'dark' ? <Moon /> : <Sun />}</span><div><h2>Apariencia</h2><p>Elegí el tema o seguí automáticamente la configuración del dispositivo.</p></div></div><div className="theme-options"><button className={preference === 'light' ? 'active' : ''} type="button" onClick={() => setTheme('light')}><span className="theme-preview light-preview"><i /><i /><i /></span><strong><Sun size={16} /> Claro</strong></button><button className={preference === 'dark' ? 'active' : ''} type="button" onClick={() => setTheme('dark')}><span className="theme-preview dark-preview"><i /><i /><i /></span><strong><Moon size={16} /> Oscuro</strong></button><button className={preference === 'system' ? 'active' : ''} type="button" onClick={() => setTheme('system')}><span className="theme-preview system-preview"><i /><i /><i /></span><strong><Laptop size={16} /> Sistema</strong></button></div></section>
+      <section className="settings-card settings-wide"><div className="settings-card-title"><span>{preference === 'system' ? <Laptop /> : theme === 'dark' ? <Moon /> : <Sun />}</span><div><h2>Apariencia</h2><p>Elegí el tema o seguí automáticamente la configuración del dispositivo.</p></div></div><div className="theme-options"><button className={preference === 'light' ? 'active' : ''} type="button" onClick={() => setTheme('light')} aria-pressed={preference === 'light'}><ThemePreview mode="light" /><strong><Sun size={16} /> Claro</strong></button><button className={preference === 'dark' ? 'active' : ''} type="button" onClick={() => setTheme('dark')} aria-pressed={preference === 'dark'}><ThemePreview mode="dark" /><strong><Moon size={16} /> Oscuro</strong></button><button className={preference === 'system' ? 'active' : ''} type="button" onClick={() => setTheme('system')} aria-pressed={preference === 'system'}><ThemePreview mode="system" /><strong><Laptop size={16} /> Sistema</strong></button></div></section>
       <section className="settings-card settings-wide"><div className="settings-card-title"><span><SlidersHorizontal /></span><div><h2>Preferencias del espacio</h2><p>Definí dónde empezar y cómo organizar tu trabajo.</p></div></div><div className="settings-preference-grid"><label>Página de inicio<select value={preferences.defaultPage} onChange={event => updatePreference('defaultPage', event.target.value as typeof preferences.defaultPage)}><option value="/dashboard">Inicio y resumen</option><option value="/projects">Proyectos</option><option value="/tasks">Mis tareas</option><option value="/ideas">Ideas</option></select><small>Se abrirá después de iniciar sesión y al tocar el logo.</small></label><label>Vista predeterminada de tareas<select value={preferences.defaultTaskView} onChange={event => updatePreference('defaultTaskView', event.target.value as typeof preferences.defaultTaskView)}><option value="list">Lista</option><option value="kanban">Kanban</option></select><small>Se aplicará al volver a entrar en Mis tareas.</small></label></div></section>
       <section className="settings-card settings-wide"><div className="settings-card-title"><span><Bot /></span><div><h2>Asistente DevHub</h2><p>Controlá su presencia y el tipo de ayuda que querés recibir.</p></div></div><div className="settings-switches"><label className="setting-switch-row"><div><strong>Mostrar asistente</strong><small>Activa el botón flotante en toda la aplicación.</small></div><input type="checkbox" checked={preferences.assistantEnabled} onChange={event => updatePreference('assistantEnabled', event.target.checked)} /><i /></label><label className="setting-switch-row"><div><strong>Sugerencias rápidas</strong><small>Muestra preguntas relacionadas debajo de la conversación.</small></div><input type="checkbox" checked={preferences.assistantSuggestions} disabled={!preferences.assistantEnabled} onChange={event => updatePreference('assistantSuggestions', event.target.checked)} /><i /></label><label className="setting-switch-row"><div><strong>Recomendación al abrir</strong><small>Analiza tu trabajo y propone automáticamente un proyecto.</small></div><input type="checkbox" checked={preferences.proactiveRecommendations} disabled={!preferences.assistantEnabled} onChange={event => updatePreference('proactiveRecommendations', event.target.checked)} /><i /></label></div></section>
       <section className="settings-card"><div className="settings-card-title"><span><Sparkles /></span><div><h2>Ayuda y recorrido</h2><p>Repasá las funciones principales de DevHub.</p></div></div><p className="settings-card-copy">Volvé a ver el tutorial inicial para recordar dónde está cada herramienta.</p><button className="button" type="button" onClick={restartOnboarding}><Sparkles size={17} /> Repetir tutorial</button></section>
@@ -462,5 +477,5 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 export function App() {
-  return <Routes><Route path="/login" element={<AuthPage mode="login" />} /><Route path="/register" element={<AuthPage mode="register" />} /><Route path="/forgot-password" element={<ForgotPasswordPage />} /><Route path="/reset-password" element={<ResetPasswordPage />} /><Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} /><Route path="/projects" element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>} /><Route path="/tasks" element={<ProtectedRoute><MyTasksPage /></ProtectedRoute>} /><Route path="/ideas" element={<ProtectedRoute><Shell><IdeasPage /></Shell></ProtectedRoute>} /><Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} /><Route path="/projects/new" element={<ProtectedRoute><ProjectEditorPage mode="create" /></ProtectedRoute>} /><Route path="/projects/:projectId/edit" element={<ProtectedRoute><ProjectEditorPage mode="edit" /></ProtectedRoute>} /><Route path="/projects/:projectId" element={<ProtectedRoute><ProjectPage /></ProtectedRoute>} /><Route path="*" element={<Navigate to="/dashboard" replace />} /></Routes>
+  return <Suspense fallback={<div className="route-loader"><span /><p>Cargando pantalla...</p></div>}><Routes><Route path="/login" element={<AuthPage mode="login" />} /><Route path="/register" element={<AuthPage mode="register" />} /><Route path="/forgot-password" element={<ForgotPasswordPage />} /><Route path="/reset-password" element={<ResetPasswordPage />} /><Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} /><Route path="/projects" element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>} /><Route path="/tasks" element={<ProtectedRoute><MyTasksPage /></ProtectedRoute>} /><Route path="/ideas" element={<ProtectedRoute><Shell><IdeasPage /></Shell></ProtectedRoute>} /><Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} /><Route path="/projects/new" element={<ProtectedRoute><ProjectEditorPage mode="create" /></ProtectedRoute>} /><Route path="/projects/:projectId/edit" element={<ProtectedRoute><ProjectEditorPage mode="edit" /></ProtectedRoute>} /><Route path="/projects/:projectId" element={<ProtectedRoute><ProjectPage /></ProtectedRoute>} /><Route path="*" element={<Navigate to="/dashboard" replace />} /></Routes></Suspense>
 }

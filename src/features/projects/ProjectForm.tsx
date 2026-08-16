@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { useAuth } from '../auth/AuthProvider'
 import { useCreateProject, useUpdateProject } from './projectApi'
 import type { Project, ProjectStatus } from '../../types/database'
+import { useToast } from '../feedback/toastContext'
 
 const optionalUrl = z.string().trim().refine(value => !value || z.url().safeParse(value).success, 'Ingresá una URL válida.')
 const projectSchema = z.object({
@@ -21,6 +22,7 @@ type ProjectFormValues = z.infer<typeof projectSchema>
 
 export function ProjectForm({ project }: { project?: Project }) {
   const { user } = useAuth()
+  const { showToast } = useToast()
   const navigate = useNavigate()
   const createProject = useCreateProject()
   const updateProject = useUpdateProject()
@@ -57,6 +59,7 @@ export function ProjectForm({ project }: { project?: Project }) {
       const saved = project
         ? await updateProject.mutateAsync({ id: project.id, input })
         : await createProject.mutateAsync({ input, userId: user.id })
+      showToast(project ? 'Proyecto actualizado correctamente.' : 'Proyecto creado correctamente.')
       navigate(`/projects/${saved.id}`, { replace: true })
     } catch {
       setServerError('No pudimos guardar el proyecto. Revisá los datos e intentá nuevamente.')
