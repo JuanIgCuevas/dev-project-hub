@@ -19,9 +19,28 @@ export interface ProjectDetails extends Project {
   tasks: Task[]
 }
 
+export interface PublicProjectShowcase {
+  id: string
+  name: string
+  description: string | null
+  status: ProjectStatus
+  technologies: string[]
+  repository_url: string | null
+  live_url: string | null
+  public_slug: string
+  created_at: string
+  updated_at: string
+  published_at: string
+  owner_name: string
+  total_tasks: number
+  completed_tasks: number
+  milestones: { id: string; title: string }[]
+}
+
 const projectKeys = {
   all: ['projects'] as const,
   detail: (id: string) => ['projects', id] as const,
+  public: (slug: string) => ['public-project', slug] as const,
 }
 
 async function getProjects() {
@@ -45,6 +64,38 @@ export function useProject(id?: string) {
     queryKey: projectKeys.detail(id ?? ''),
     queryFn: () => getProject(id!),
     enabled: Boolean(id),
+  })
+}
+
+export function usePublicProject(slug?: string) {
+  return useQuery({
+    queryKey: projectKeys.public(slug ?? ''),
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('api_get_public_project', { p_slug: slug! })
+      if (error) throw error
+      return data as PublicProjectShowcase | null
+    },
+    enabled: Boolean(slug),
+  })
+}
+
+export function useUpdateProjectPublication() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, isPublic, slug }: { id: string; isPublic: boolean; slug?: string }) => {
+      const { data, error } = await supabase.rpc('api_update_project_publication', {
+        p_project_id: id,
+        p_is_public: isPublic,
+        p_slug: slug?.trim() || null,
+      })
+      if (error) throw error
+      return data as Project
+    },
+    onSuccess: project => {
+      queryClient.invalidateQueries({ queryKey: projectKeys.all })
+      queryClient.invalidateQueries({ queryKey: projectKeys.detail(project.id) })
+      if (project.public_slug) queryClient.invalidateQueries({ queryKey: projectKeys.public(project.public_slug) })
+    },
   })
 }
 
