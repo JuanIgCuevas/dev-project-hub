@@ -13,7 +13,7 @@ const passwordSchema = z.object({
 }).refine(values => values.password === values.confirmation, { path: ['confirmation'], message: 'Las contraseñas no coinciden.' })
 
 function AuthCard({ children }: { children: React.ReactNode }) {
-  return <div className="simple-auth"><div className="simple-auth-card"><Link className="brand" to="/"><span className="brand-mark">{'</>'}</span><span>Dev<span>Hub</span></span></Link>{children}</div></div>
+  return <div className="simple-auth"><div className="simple-auth-card"><Link className="brand" to="/"><span className="brand-mark">DH</span><span className="brand-copy"><span className="brand-name">Dev<span>Hub</span></span><small>BUILD SYSTEM · 2026</small></span></Link>{children}</div></div>
 }
 
 export function ForgotPasswordPage() {

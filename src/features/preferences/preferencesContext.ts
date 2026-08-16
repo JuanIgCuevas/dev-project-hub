@@ -3,8 +3,10 @@ import { createContext, useContext } from 'react'
 export type DefaultPage = '/dashboard' | '/projects' | '/tasks' | '/ideas'
 export type DefaultTaskView = 'list' | 'kanban'
 export type FocusTimerPosition = 'top-right' | 'top-left' | 'bottom-left'
+export type AppLanguage = 'es' | 'en'
 
 export interface AppPreferences {
+  language: AppLanguage
   defaultPage: DefaultPage
   defaultTaskView: DefaultTaskView
   assistantEnabled: boolean
@@ -25,6 +27,7 @@ export interface PreferencesContextValue {
 }
 
 export const defaultPreferences: AppPreferences = {
+  language: 'es',
   defaultPage: '/dashboard',
   defaultTaskView: 'list',
   assistantEnabled: true,

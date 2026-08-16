@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { defaultPreferences, PreferencesContext } from './preferencesContext'
 import type { AppPreferences } from './preferencesContext'
+import { LanguageRuntime } from './LanguageRuntime'
 
 function getInitialPreferences(): AppPreferences {
   try {
@@ -22,5 +23,5 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
     })
   }
 
-  return <PreferencesContext.Provider value={{ preferences, updatePreference }}>{children}</PreferencesContext.Provider>
+  return <PreferencesContext.Provider value={{ preferences, updatePreference }}><LanguageRuntime />{children}</PreferencesContext.Provider>
 }
