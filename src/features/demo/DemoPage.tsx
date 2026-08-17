@@ -33,12 +33,13 @@ export function DemoPage() {
   const { theme, toggleTheme } = useTheme()
   const { preferences, updatePreference } = usePreferences()
   const { showToast } = useToast()
+  const english = preferences.language === 'en'
   const completed = tasks.filter(task => task.done).length
   const progress = Math.round(completed / tasks.length * 100)
   const nav = [
-    { id: 'home' as const, label: 'Inicio', icon: LayoutDashboard },
-    { id: 'projects' as const, label: 'Proyectos', icon: FolderKanban },
-    { id: 'tasks' as const, label: 'Tareas', icon: ListTodo },
+    { id: 'home' as const, label: english ? 'Home' : 'Inicio', icon: LayoutDashboard },
+    { id: 'projects' as const, label: english ? 'Projects' : 'Proyectos', icon: FolderKanban },
+    { id: 'tasks' as const, label: english ? 'Tasks' : 'Tareas', icon: ListTodo },
     { id: 'ideas' as const, label: 'Ideas', icon: Lightbulb },
   ]
   const tour = [
@@ -62,7 +63,7 @@ export function DemoPage() {
   return <div className="demo-page">
     <aside className="demo-sidebar"><Link className="brand" to="/demo"><span className="brand-mark">DH</span><span className="brand-copy"><span className="brand-name">Dev<span>Hub</span></span><small>INTERACTIVE DEMO</small></span></Link><nav>{nav.map(item => <button className={view === item.id ? 'active' : ''} onClick={() => setView(item.id)} type="button" aria-current={view === item.id ? 'page' : undefined} key={item.id}><item.icon /><span>{item.label}</span></button>)}</nav><div className="demo-sidebar-bottom"><span><Sparkles /> MODO DEMO</span><small>Datos ficticios · nada se guarda</small><Link to="/login"><X /> Salir de la demo</Link></div></aside>
     <main className="demo-main">
-      <header className="demo-topbar"><div><p className="eyebrow">DEMO INTERACTIVA · {visibleTitle.toUpperCase()}</p><h1>{view === 'home' ? 'Así se siente construir con foco' : visibleTitle}</h1></div><div className="demo-top-actions"><label><Languages /><select aria-label="Idioma de la aplicación" value={preferences.language} onChange={event => updatePreference('language', event.target.value as typeof preferences.language)}><option value="es">ES</option><option value="en">EN</option></select></label><button type="button" onClick={toggleTheme} aria-label={theme === 'dark' ? 'Usar modo claro' : 'Usar modo oscuro'}>{theme === 'dark' ? <Sun /> : <Moon />}</button><Link className="button primary" to="/register">Crear mi espacio <ArrowRight /></Link></div></header>
+      <header className="demo-topbar"><div><p className="eyebrow">{english ? 'INTERACTIVE DEMO' : 'DEMO INTERACTIVA'} · {visibleTitle.toUpperCase()}</p><h1>{view === 'home' ? 'Así se siente construir con foco' : visibleTitle}</h1></div><div className="demo-top-actions"><label><Languages /><select aria-label="Idioma de la aplicación" value={preferences.language} onChange={event => updatePreference('language', event.target.value as typeof preferences.language)}><option value="es">ES</option><option value="en">EN</option></select></label><button type="button" onClick={toggleTheme} aria-label={theme === 'dark' ? 'Usar modo claro' : 'Usar modo oscuro'}>{theme === 'dark' ? <Sun /> : <Moon />}</button><Link className="button primary" to="/register">Crear mi espacio <ArrowRight /></Link></div></header>
 
       <section className="demo-tour" aria-live="polite"><span>{tourStep + 1}/4</span><div><strong>{tour[tourStep].title}</strong><p>{tour[tourStep].text}</p></div><div className="demo-tour-dots">{tour.map((_, index) => <button type="button" className={tourStep === index ? 'active' : ''} onClick={() => { setTourStep(index); setView(nav[index].id) }} aria-label={`Ver paso ${index + 1}`} key={index} />)}</div><button className="button" type="button" onClick={advanceTour}>{tourStep === tour.length - 1 ? 'Volver al inicio' : 'Siguiente'} <ArrowRight /></button></section>
 
