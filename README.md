@@ -150,5 +150,7 @@ de forma privada.
 
 - [Guion de demo de 3 minutos](./docs/DEMO_GUIDE.md)
 - [Caso de estudio para portfolio](./docs/CASE_STUDY.md)
+- [Ver video corto de producto](https://dev-project-hub.vercel.app/video/devhub-product-demo-50s.mp4)
+- [Archivos de producción del video](./docs/video/README.md)
 - [Lista de control para publicar](./docs/RELEASE_CHECKLIST.md)
 - [Política de seguridad](./SECURITY.md)
