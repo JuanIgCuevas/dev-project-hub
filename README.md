@@ -27,8 +27,8 @@ pueda compartir. Combina gestión, memoria de trabajo y presentación pública e
 una única experiencia responsive, bilingüe e instalable.
 
 > La [demo interactiva](https://dev-project-hub.vercel.app/demo) no requiere una
-> cuenta y utiliza datos ficticios que no se guardan. El enlace quedará activo
-> en producción al integrar `Development` en `main`.
+> cuenta, utiliza datos ficticios que no se guardan y ya está disponible en
+> producción.
 
 ## El problema
 
