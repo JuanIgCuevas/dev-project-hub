@@ -50,7 +50,7 @@ jobs:
 
       - name: Store validated build
         if: github.event_name == 'push'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: devhub-${{ github.sha }}
           path: dist
